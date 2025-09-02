@@ -26,6 +26,7 @@ export function createWindow() {
     // backgroundMaterial: 'acrylic', // on Windows 11
     // visualEffectState: 'active',
     webPreferences: {
+      sandbox: false,
       preload: path.join(path.dirname(fileURLToPath(import.meta.url)), '../preload/index.mjs'),
     },
   })
@@ -34,12 +35,12 @@ export function createWindow() {
     mainWindow!.show()
   })
 
-  if (process.env.VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
+  if (process.env.ELECTRON_RENDERER_URL) {
     mainWindow.webContents.openDevTools()
+    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   }
   else {
-    mainWindow.loadFile('dist/index.html')
+    mainWindow.loadFile(path.join(path.dirname(fileURLToPath(import.meta.url)), '../renderer/index.html'))
   }
 
   return mainWindow
