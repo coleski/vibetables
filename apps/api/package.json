@@ -2,12 +2,12 @@
   "name": "@conar/api",
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development tsx --env-file=.env ./src/index.ts",
-    "start": "cross-env NODE_ENV=production pnpm run drizzle:migrate && tsx src/index.ts",
+    "dev": "cross-env NODE_ENV=development bun --watch run ./src/index.ts",
+    "start": "cross-env NODE_ENV=production bun run drizzle:migrate && bun run ./src/index.ts",
     "check-types": "tsc",
-    "drizzle:generate": "drizzle-kit generate",
-    "drizzle:generate-custom": "drizzle-kit generate --custom",
-    "drizzle:migrate": "drizzle-kit migrate"
+    "drizzle:generate": "bunx --bun drizzle-kit generate",
+    "drizzle:generate-custom": "bunx --bun drizzle-kit generate --custom",
+    "drizzle:migrate": "bunx --bun drizzle-kit migrate"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.9",
@@ -17,11 +17,10 @@
     "@ai-sdk/openai": "^2.0.23",
     "@ai-sdk/openai1": "npm:@ai-sdk/openai@1.3.23",
     "@ai-sdk/provider": "^2.0.0",
-    "@ai-sdk/xai": "^2.0.15",
+    "@ai-sdk/xai": "^2.0.14",
     "@ai-sdk/xai1": "npm:@ai-sdk/xai@1.2.18",
     "@conar/shared": "workspace:*",
     "@hono/arktype-validator": "^2.0.1",
-    "@hono/node-server": "^1.19.1",
     "@hono/trpc-server": "^0.4.0",
     "@hono/zod-validator": "^0.7.2",
     "@orpc/server": "^1.8.6",
@@ -50,7 +49,6 @@
   "devDependencies": {
     "@conar/configs": "workspace:*",
     "@types/ioredis-mock": "^8.2.6",
-    "drizzle-kit": "catalog:",
-    "tsx": "^4.20.5"
+    "drizzle-kit": "catalog:"
   }
 }

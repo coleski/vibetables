@@ -1,7 +1,7 @@
 import type { AppUIMessage } from '@conar/shared/ai-tools'
 import type { LanguageModel } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
-import { tools } from '@conar/shared/ai-tools'
+import { convertToAppUIMessage, tools } from '@conar/shared/ai-tools'
 import { DatabaseType } from '@conar/shared/enums/database-type'
 import { ORPCError, streamToEventIterator } from '@orpc/server'
 import { convertToModelMessages, smoothStream, stepCountIs, streamText } from 'ai'
@@ -106,10 +106,28 @@ function generateStream({
 }
 
 export function getMessages(chatId: string): Promise<AppUIMessage[]> {
-  return db.select().from(chatsMessages).where(eq(chatsMessages.chatId, chatId)).orderBy(asc(chatsMessages.createdAt)).then(rows => rows.map(row => ({
-    ...row,
-    metadata: row.metadata || undefined,
-  })))
+  return db
+    .select()
+    .from(chatsMessages)
+    .where(eq(chatsMessages.chatId, chatId))
+    .orderBy(asc(chatsMessages.createdAt))
+    .then(rows => rows.map(convertToAppUIMessage))
+}
+
+async function ensureChat(chatId: string, userId: string, databaseId: string) {
+  const [existingChat] = await db.select().from(chats).where(eq(chats.id, chatId)).limit(1)
+
+  if (existingChat) {
+    return existingChat
+  }
+
+  const [newChat] = await db.insert(chats).values({
+    id: chatId,
+    userId,
+    databaseId,
+  }).returning()
+
+  return newChat
 }
 
 export const ask = orpc
@@ -122,44 +140,27 @@ export const ask = orpc
   })
   .input(chatInputType)
   .handler(async ({ input, context, signal }) => {
-    await db.transaction(async (tx) => {
-      const [existingChat] = await tx.select().from(chats).where(eq(chats.id, input.id)).limit(1)
+    await ensureChat(input.id, context.user.id, input.databaseId)
 
-      if (!existingChat) {
-        await tx.insert(chats).values({
-          id: input.id,
-          userId: context.user.id,
-          databaseId: input.databaseId,
-        })
-      }
+    if (input.trigger === 'submit-message') {
+      await db.insert(chatsMessages).values({
+        chatId: input.id,
+        ...input.prompt,
+      }).onConflictDoUpdate({
+        target: chatsMessages.id,
+        set: input.prompt,
+      }).catch((error) => {
+        console.error('error on submit-message', error)
+        throw error
+      })
+    }
 
-      if (input.trigger === 'submit-message') {
-        await tx.insert(chatsMessages).values({
-          chatId: input.id,
-          ...input.prompt,
-        }).onConflictDoUpdate({ // It happens when the chat calling the stream again after some tool call
-          target: chatsMessages.id,
-          set: input.prompt,
-        })
-      }
-
-      if (input.trigger === 'regenerate-message' && input.messageId) {
-        await tx.delete(chatsMessages).where(eq(chatsMessages.id, input.messageId))
-      }
-    }).catch((error) => {
-      console.error('error onFinish transaction', error)
-
-      // Handle foreign key constraint violations specifically
-      if (error.message?.includes('violates foreign key constraint')
-        || error.message?.includes('chats_messages_chat_id_chats_id_fk')) {
-        console.error('Foreign key constraint violation: Chat does not exist', { chatId: input.id })
-        throw new ORPCError('BAD_REQUEST', {
-          message: 'Chat not found. Please try creating a new chat.',
-        })
-      }
-
-      throw error
-    })
+    if (input.trigger === 'regenerate-message' && input.messageId) {
+      await db.delete(chatsMessages).where(eq(chatsMessages.id, input.messageId)).catch((error) => {
+        console.error('error on regenerate-message', error)
+        throw error
+      })
+    }
 
     const messages = await getMessages(input.id).catch((error) => {
       console.error('error on getMessages', error)
@@ -181,13 +182,16 @@ export const ask = orpc
         originalMessages: messages,
         generateMessageId: () => v7(),
         onFinish: async (result) => {
-          console.info('stream finished', JSON.stringify(result.responseMessage, null, 2))
+          console.info('stream finished', JSON.stringify({
+            ...result.responseMessage,
+            parts: result.responseMessage.parts.map(part => part.type),
+          }, null, 2))
 
           try {
             await db.insert(chatsMessages).values({
               ...result.responseMessage,
               chatId: input.id,
-            }).onConflictDoUpdate({ // It happens when the chat calling the stream again after some tool call
+            }).onConflictDoUpdate({
               target: chatsMessages.id,
               set: result.responseMessage,
             })
