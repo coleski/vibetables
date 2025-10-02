@@ -2,37 +2,37 @@ import { Button } from '@conar/ui/components/button'
 import { LoadingContent } from '@conar/ui/components/custom/loading-content'
 import { Skeleton } from '@conar/ui/components/skeleton'
 import { cn } from '@conar/ui/lib/utils'
-import { RiLogoutBoxLine, RiWifiOffLine } from '@remixicon/react'
+import { RiLogoutBoxLine, RiShieldCheckLine } from '@remixicon/react'
 import { UserAvatar, useSignOut } from '~/entities/user'
-import { disableOfflineMode, isOfflineMode } from '~/lib/offline-mode'
+import { disablePrivateMode, isPrivateMode } from '~/lib/private-mode'
 import { useRouter } from '@tanstack/react-router'
 
 export function Profile({ className }: { className?: string }) {
   const { data, signOut, isSigningOut } = useSignOut()
   const router = useRouter()
-  const offlineMode = isOfflineMode()
+  const privateMode = isPrivateMode()
 
-  function handleExitOfflineMode() {
-    disableOfflineMode()
+  function handleExitPrivateMode() {
+    disablePrivateMode()
     router.navigate({ to: '/sign-in' })
   }
 
-  if (offlineMode) {
+  if (privateMode) {
     return (
       <div className={cn('flex flex-row items-center justify-between', className)}>
         <div className="flex flex-row items-center gap-4">
           <div className="size-16 rounded-full bg-accent flex items-center justify-center">
-            <RiWifiOffLine className="size-8 text-muted-foreground" />
+            <RiShieldCheckLine className="size-8 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="text-2xl font-semibold">Offline Mode</h3>
-            <p className="text-sm text-muted-foreground">Using without account</p>
+            <h3 className="text-2xl font-semibold">Private Mode</h3>
+            <p className="text-sm text-muted-foreground">Local connections only</p>
           </div>
         </div>
         <Button
           variant="outline"
           size="sm"
-          onClick={handleExitOfflineMode}
+          onClick={handleExitPrivateMode}
         >
           Sign in
         </Button>

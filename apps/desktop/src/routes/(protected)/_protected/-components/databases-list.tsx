@@ -1,11 +1,12 @@
 import type { ComponentRef } from 'react'
 import type { databases } from '~/drizzle'
 import { SafeURL } from '@conar/shared/utils/safe-url'
+import { Badge } from '@conar/ui/components/badge'
 import { Button } from '@conar/ui/components/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@conar/ui/components/dropdown-menu'
 import { Skeleton } from '@conar/ui/components/skeleton'
 import { copy } from '@conar/ui/lib/copy'
-import { RiDeleteBinLine, RiEditLine, RiFileCopyLine, RiMoreLine } from '@remixicon/react'
+import { RiDeleteBinLine, RiEditLine, RiFileCopyLine, RiMoreLine, RiShieldCheckLine } from '@remixicon/react'
 import { useLiveQuery } from '@tanstack/react-db'
 import { Link } from '@tanstack/react-router'
 import { useMemo, useRef } from 'react'
@@ -37,6 +38,12 @@ function DatabaseCard({ database, onRemove, onRename }: { database: typeof datab
       <div className="flex flex-1 flex-col min-w-0">
         <div className="font-medium tracking-tight truncate flex items-center gap-2">
           {database.name}
+          {database.isOffline && (
+            <Badge variant="secondary" className="text-xs gap-1 px-1.5 py-0">
+              <RiShieldCheckLine className="size-3" />
+              Private
+            </Badge>
+          )}
         </div>
         <div data-mask className="text-xs text-muted-foreground font-mono truncate">{connectionString.replaceAll('*', '•')}</div>
       </div>

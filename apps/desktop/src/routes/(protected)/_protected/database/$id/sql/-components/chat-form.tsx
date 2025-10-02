@@ -13,7 +13,10 @@ import { useStore } from '@tanstack/react-store'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { TipTap } from '~/components/tiptap'
+import { AiProvider } from '~/drizzle'
+import { getUserApiKey } from '~/lib/ai-helper'
 import { orpc } from '~/lib/orpc'
+import { isPrivateMode } from '~/lib/private-mode'
 import { Route } from '..'
 import { chatInput } from '../-chat'
 import { pageHooks, pageStore } from '../-lib'
@@ -127,7 +130,14 @@ export function ChatForm() {
   }, [router, database.id, chat.id])
 
   const { mutate: enhancePrompt, isPending: isEnhancingPrompt } = useMutation({
-    mutationFn: (data: { prompt: string, chatId: string }) => orpc.ai.enhancePrompt(data),
+    mutationFn: async (data: { prompt: string, chatId: string }) => {
+      // Get user's API key if in private mode
+      const userApiKey = isPrivateMode()
+        ? await getUserApiKey(AiProvider.OpenAI)
+        : undefined
+
+      return orpc.ai.enhancePrompt({ ...data, userApiKey })
+    },
     onSuccess: (data) => {
       if (input.length < 10) {
         return

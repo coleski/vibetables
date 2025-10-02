@@ -1,10 +1,12 @@
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle } from 'drizzle-orm/pglite'
 import migrations from './migrations.json'
+import * as apiKeys from './schema/api-keys'
 import * as chats from './schema/chats'
 import * as databases from './schema/databases'
 import * as queries from './schema/queries'
 
+export * from './schema/api-keys'
 export * from './schema/chats'
 export * from './schema/databases'
 export * from './schema/queries'
@@ -26,6 +28,7 @@ export const db = drizzle({
   casing: 'snake_case',
   logger: import.meta.env.DEV,
   schema: {
+    ...apiKeys,
     ...databases,
     ...chats,
     ...queries,
@@ -34,7 +37,8 @@ export const db = drizzle({
 
 export async function clearDb() {
   // We can remove just databases because other tables are related to databases
-  await db.delete(databases.databases)
+  // Only delete cloud-synced connections (null or false), preserve private mode connections (true)
+  await db.delete(databases.databases).where(databases.databases.isOffline.isNot(true))
 }
 
 async function ensureMigrationsTable() {

@@ -14,6 +14,10 @@ export async function prefetchDatabaseCore(database: typeof databases.$inferSele
     return
   }
 
+  if (database.isOffline) {
+    return
+  }
+
   await Promise.all([
     queryClient.prefetchQuery(tablesAndSchemasQuery({ database })),
     queryClient.prefetchQuery(databaseEnumsQuery({ database })),
@@ -30,6 +34,10 @@ export async function prefetchDatabaseTableCore({ database, schema, table, query
     orderBy: Record<string, 'ASC' | 'DESC'>
   }
 }) {
+  if (database.isOffline) {
+    return
+  }
+
   await Promise.all([
     queryClient.prefetchInfiniteQuery(databaseRowsQuery({ database, table, schema, query })),
     queryClient.prefetchQuery(databaseTableTotalQuery({ database, table, schema, query })),

@@ -4,7 +4,7 @@ import { Label } from '@conar/ui/components/label'
 import { Separator } from '@conar/ui/components/separator'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
-import { enableOfflineMode } from '~/lib/offline-mode'
+import { enablePrivateMode } from '~/lib/private-mode'
 import { AuthForm } from './-components/auth-form'
 
 export const Route = createFileRoute('/(public)/_auth/sign-in')({
@@ -16,7 +16,7 @@ function SignInPage() {
   const [dontAskAgain, setDontAskAgain] = useState(false)
 
   function handleUseWithoutAccount() {
-    enableOfflineMode(dontAskAgain)
+    enablePrivateMode(dontAskAgain)
     router.navigate({ to: '/' })
   }
 

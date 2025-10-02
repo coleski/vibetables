@@ -5,7 +5,7 @@ import { drizzleCollectionOptions } from 'tanstack-db-pglite'
 import { db, queries, waitForMigrations } from '~/drizzle'
 import { waitForDatabasesSync } from '~/entities/database'
 import { bearerToken } from '~/lib/auth'
-import { isOfflineMode } from '~/lib/offline-mode'
+import { isPrivateMode } from '~/lib/private-mode'
 import { orpc } from '~/lib/orpc'
 
 export const queriesCollection = createCollection(drizzleCollectionOptions({
@@ -15,7 +15,7 @@ export const queriesCollection = createCollection(drizzleCollectionOptions({
   startSync: false,
   prepare: waitForMigrations,
   sync: async ({ collection, write }) => {
-    if (isOfflineMode() || !bearerToken.get() || !navigator.onLine) {
+    if (isPrivateMode() || !bearerToken.get() || !navigator.onLine) {
       return
     }
 
@@ -32,13 +32,13 @@ export const queriesCollection = createCollection(drizzleCollectionOptions({
     })
   },
   onInsert: async ({ transaction }) => {
-    if (isOfflineMode()) {
+    if (isPrivateMode()) {
       return
     }
     await orpc.queries.create(transaction.mutations.map(m => m.modified))
   },
   onDelete: async ({ transaction }) => {
-    if (isOfflineMode()) {
+    if (isPrivateMode()) {
       return
     }
     await orpc.queries.remove(transaction.mutations.map(m => ({ id: m.key })))

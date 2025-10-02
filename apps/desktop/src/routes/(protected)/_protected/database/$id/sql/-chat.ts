@@ -10,9 +10,12 @@ import { lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
 import { v7 as uuid } from 'uuid'
 import { chatsCollection, chatsMessagesCollection } from '~/entities/chat'
 import { databaseEnumsQuery, databaseTableColumnsQuery, tablesAndSchemasQuery } from '~/entities/database'
+import { getUserApiKey } from '~/lib/ai-helper'
 import { orpc } from '~/lib/orpc'
+import { isPrivateMode } from '~/lib/private-mode'
 import { dbQuery } from '~/lib/query'
 import { queryClient } from '~/main'
+import { AiProvider } from '~/drizzle'
 import { pageStore } from './-lib'
 
 export const chatQuery = {
@@ -133,6 +136,11 @@ export async function createChat({ id = uuid(), database }: { id?: string, datab
           chatsMessagesCollection.delete(options.messageId)
         }
 
+        // Get user's API key if in private mode
+        const userApiKey = isPrivateMode()
+          ? await getUserApiKey(AiProvider.Anthropic)
+          : undefined
+
         return eventIteratorToStream(await orpc.ai.ask({
           ...options.body,
           id: options.chatId,
@@ -143,6 +151,7 @@ export async function createChat({ id = uuid(), database }: { id?: string, datab
           prompt: lastMessage,
           trigger: options.trigger,
           messageId: options.messageId,
+          userApiKey,
           context: [
             `Current query in the SQL runner: ${pageStore.state.query.trim() || 'Empty'}`,
             'Database schemas and tables:',

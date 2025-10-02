@@ -6,7 +6,7 @@ import { useIsMutating, useMutation } from '@tanstack/react-query'
 import { drizzleCollectionOptions } from 'tanstack-db-pglite'
 import { databases, db, waitForMigrations } from '~/drizzle'
 import { bearerToken } from '~/lib/auth'
-import { isOfflineMode } from '~/lib/offline-mode'
+import { isPrivateMode } from '~/lib/private-mode'
 import { orpc } from '~/lib/orpc'
 import { router } from '~/main'
 
@@ -35,7 +35,7 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
   startSync: false,
   prepare: waitForMigrations,
   sync: async ({ write, collection }) => {
-    if (isOfflineMode() || !bearerToken.get() || !navigator.onLine) {
+    if (isPrivateMode() || !bearerToken.get() || !navigator.onLine) {
       return
     }
 
@@ -48,6 +48,7 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
           value: {
             ...item.value,
             isPasswordPopulated: !!new SafeURL(item.value.connectionString).password,
+            isOffline: null, // Cloud-synced connections (not private mode)
           },
         })
       }
@@ -73,6 +74,7 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
             connectionString: newConnectionString.toString(),
             isPasswordPopulated: !!newConnectionString.password,
             syncType: item.value.syncType ?? SyncType.CloudWithoutPassword,
+            isOffline: existed.isOffline, // Preserve private mode flag
           },
         })
       }
@@ -92,16 +94,17 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
     resolve()
   },
   onInsert: async ({ transaction }) => {
-    if (isOfflineMode()) {
+    if (isPrivateMode()) {
       return
     }
     await Promise.all(transaction.mutations.map(m => orpc.databases.create({
       ...m.modified,
+      // Don't send isOffline to cloud - it's a local-only field
       connectionString: prepareConnectionStringToCloud(m.modified.connectionString, m.modified.syncType),
     })))
   },
   onUpdate: async ({ transaction }) => {
-    if (isOfflineMode()) {
+    if (isPrivateMode()) {
       router.invalidate({ filter: r => r.routeId === '/(protected)/_protected/database/$id' })
       return
     }
@@ -117,7 +120,7 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
     router.invalidate({ filter: r => r.routeId === '/(protected)/_protected/database/$id' })
   },
   onDelete: async ({ transaction }) => {
-    if (isOfflineMode()) {
+    if (isPrivateMode()) {
       return
     }
     await orpc.databases.remove(transaction.mutations.map(m => ({ id: m.key })))

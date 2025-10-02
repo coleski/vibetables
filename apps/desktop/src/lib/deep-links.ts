@@ -1,6 +1,7 @@
 import { toast } from 'sonner'
 import { bearerToken, codeChallenge, successAuthToast } from '~/lib/auth'
 import { decrypt } from './encryption'
+import { clearDb } from '~/drizzle'
 
 export async function handleDeepLink(url: string): Promise<{ type: 'session' | 'unknown' }> {
   const { pathname, searchParams } = new URL(url.replace('conar://', 'https://conar.app/'))
@@ -46,6 +47,7 @@ export async function handleSession(searchParams: URLSearchParams) {
     return
   }
 
+  await clearDb()
   bearerToken.set(token)
   codeChallenge.remove()
   successAuthToast(!!newUser)
