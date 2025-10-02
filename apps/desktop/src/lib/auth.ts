@@ -11,6 +11,7 @@ import { createAuthClient } from 'better-auth/react'
 import { toast } from 'sonner'
 import { clearDb } from '~/drizzle'
 import { identifyUser } from './events'
+import { isOfflineMode } from './offline-mode'
 import { getApiUrl } from './utils'
 
 export const CODE_CHALLENGE_KEY = 'conar.code_challenge'
@@ -69,6 +70,7 @@ export const authClient = createAuthClient({
 export async function fullSignOut() {
   await authClient.signOut()
   bearerToken.remove()
-  clearDb()
+  // Don't clear local database on signout - data should persist locally
+  // and sync/overwrite on next sign-in if needed
   identifyUser(null)
 }

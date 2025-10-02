@@ -9,6 +9,7 @@ import { RiAddLine, RiCheckLine, RiDiscordLine, RiDownloadLine, RiGithubLine, Ri
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { useDatabasesSync } from '~/entities/database'
+import { isOfflineMode } from '~/lib/offline-mode'
 import { checkForUpdates, updatesStore } from '~/updates-observer'
 import { DatabasesList } from './-components/databases-list'
 import { Profile } from './-components/profile'
@@ -23,30 +24,33 @@ export const Route = createFileRoute('/(protected)/_protected/')({
 function DashboardPage() {
   const { sync, isSyncing } = useDatabasesSync()
   const [version, versionStatus] = useStore(updatesStore, state => [state.version, state.status])
+  const offlineMode = isOfflineMode()
 
   return (
     <div className="min-h-screen flex flex-col px-6 mx-auto max-w-2xl py-10">
       <h1 className="scroll-m-20 mb-6 text-4xl font-extrabold tracking-tight lg:text-5xl">
         Dashboard
       </h1>
-      <Profile className="mb-8" />
+      {!offlineMode && <Profile className="mb-8" />}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl lg:text-4xl font-bold">
           Connections
         </h2>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={isSyncing}
-            onClick={() => sync()}
-          >
-            <LoadingContent loading={isSyncing}>
-              <ContentSwitch active={isSyncing} activeContent={<RiCheckLine className="text-success" />}>
-                <RiLoopLeftLine />
-              </ContentSwitch>
-            </LoadingContent>
-          </Button>
+          {!offlineMode && (
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={isSyncing}
+              onClick={() => sync()}
+            >
+              <LoadingContent loading={isSyncing}>
+                <ContentSwitch active={isSyncing} activeContent={<RiCheckLine className="text-success" />}>
+                  <RiLoopLeftLine />
+                </ContentSwitch>
+              </LoadingContent>
+            </Button>
+          )}
           <Button asChild>
             <Link to="/create">
               <RiAddLine className="size-4" />

@@ -6,6 +6,7 @@ import { useIsMutating, useMutation } from '@tanstack/react-query'
 import { drizzleCollectionOptions } from 'tanstack-db-pglite'
 import { databases, db, waitForMigrations } from '~/drizzle'
 import { bearerToken } from '~/lib/auth'
+import { isOfflineMode } from '~/lib/offline-mode'
 import { orpc } from '~/lib/orpc'
 import { router } from '~/main'
 
@@ -34,7 +35,7 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
   startSync: false,
   prepare: waitForMigrations,
   sync: async ({ write, collection }) => {
-    if (!bearerToken.get() || !navigator.onLine) {
+    if (isOfflineMode() || !bearerToken.get() || !navigator.onLine) {
       return
     }
 
@@ -91,12 +92,19 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
     resolve()
   },
   onInsert: async ({ transaction }) => {
+    if (isOfflineMode()) {
+      return
+    }
     await Promise.all(transaction.mutations.map(m => orpc.databases.create({
       ...m.modified,
       connectionString: prepareConnectionStringToCloud(m.modified.connectionString, m.modified.syncType),
     })))
   },
   onUpdate: async ({ transaction }) => {
+    if (isOfflineMode()) {
+      router.invalidate({ filter: r => r.routeId === '/(protected)/_protected/database/$id' })
+      return
+    }
     await Promise.all(transaction.mutations
       .filter(m => (m.metadata as DatabaseMutationMetadata)?.sync !== false)
       .map(m => orpc.databases.update({
@@ -109,6 +117,9 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
     router.invalidate({ filter: r => r.routeId === '/(protected)/_protected/database/$id' })
   },
   onDelete: async ({ transaction }) => {
+    if (isOfflineMode()) {
+      return
+    }
     await orpc.databases.remove(transaction.mutations.map(m => ({ id: m.key })))
   },
 }))
