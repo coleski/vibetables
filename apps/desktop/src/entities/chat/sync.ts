@@ -5,6 +5,7 @@ import { drizzleCollectionOptions } from 'tanstack-db-pglite'
 import { chats, chatsMessages, db, waitForMigrations } from '~/drizzle'
 import { waitForDatabasesSync } from '~/entities/database'
 import { bearerToken } from '~/lib/auth'
+import { isOfflineMode } from '~/lib/offline-mode'
 import { orpc } from '~/lib/orpc'
 
 const { promise, resolve } = Promise.withResolvers()
@@ -20,7 +21,7 @@ export const chatsCollection = createCollection(drizzleCollectionOptions({
   startSync: false,
   prepare: waitForMigrations,
   sync: async ({ collection, write }) => {
-    if (!bearerToken.get() || !navigator.onLine) {
+    if (isOfflineMode() || !bearerToken.get() || !navigator.onLine) {
       return
     }
 
@@ -46,7 +47,7 @@ export const chatsMessagesCollection = createCollection(drizzleCollectionOptions
   startSync: false,
   prepare: waitForMigrations,
   sync: async ({ collection, write }) => {
-    if (!bearerToken.get() || !navigator.onLine) {
+    if (isOfflineMode() || !bearerToken.get() || !navigator.onLine) {
       return
     }
 
