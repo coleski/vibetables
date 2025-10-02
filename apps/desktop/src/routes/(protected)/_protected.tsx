@@ -7,7 +7,7 @@ import { useChatsMessagesSync, useChatsSync } from '~/entities/chat/sync'
 import { useDatabasesSync } from '~/entities/database'
 import { useQueriesSync } from '~/entities/query/sync'
 import { authClient } from '~/lib/auth'
-import { isOfflineMode } from '~/lib/offline-mode'
+import { isPrivateMode } from '~/lib/private-mode'
 import { ActionsCenter } from './-components/actions-center'
 
 const os = getOS(navigator.userAgent)
@@ -20,7 +20,7 @@ function ProtectedLayout() {
   const { data } = authClient.useSession()
   const router = useRouter()
   const { online } = useNetwork()
-  const offlineMode = isOfflineMode()
+  const offlineMode = isPrivateMode()
 
   const { sync: syncDatabases } = useDatabasesSync()
   const { sync: syncQueries } = useQueriesSync()

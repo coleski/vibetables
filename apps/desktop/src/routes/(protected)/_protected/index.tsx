@@ -9,9 +9,10 @@ import { RiAddLine, RiCheckLine, RiDiscordLine, RiDownloadLine, RiGithubLine, Ri
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { useDatabasesSync } from '~/entities/database'
-import { isOfflineMode } from '~/lib/offline-mode'
+import { isPrivateMode } from '~/lib/private-mode'
 import { checkForUpdates, updatesStore } from '~/updates-observer'
 import { DatabasesList } from './-components/databases-list'
+import { PrivateModeBadge } from './-components/private-mode-badge'
 import { Profile } from './-components/profile'
 
 export const Route = createFileRoute('/(protected)/_protected/')({
@@ -24,7 +25,7 @@ export const Route = createFileRoute('/(protected)/_protected/')({
 function DashboardPage() {
   const { sync, isSyncing } = useDatabasesSync()
   const [version, versionStatus] = useStore(updatesStore, state => [state.version, state.status])
-  const offlineMode = isOfflineMode()
+  const offlineMode = isPrivateMode()
 
   return (
     <div className="min-h-screen flex flex-col px-6 mx-auto max-w-2xl py-10">
@@ -33,9 +34,12 @@ function DashboardPage() {
       </h1>
       {!offlineMode && <Profile className="mb-8" />}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl lg:text-4xl font-bold">
-          Connections
-        </h2>
+        <div className="flex items-end gap-3">
+          <h2 className="text-3xl lg:text-4xl font-bold">
+            Connections
+          </h2>
+          {offlineMode && <PrivateModeBadge />}
+        </div>
         <div className="flex items-center gap-2">
           {!offlineMode && (
             <Button

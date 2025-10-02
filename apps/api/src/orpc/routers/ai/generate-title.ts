@@ -12,6 +12,7 @@ export const generateTitle = orpc
   .input(type({
     chatId: 'string.uuid.v7',
     messages: 'Array' as type.cast<AppUIMessage[]>,
+    'userApiKey?': 'string',
   }))
   .handler(async ({ input, signal, context }) => {
     const prompt = input.messages.map(message => message.parts
@@ -19,8 +20,13 @@ export const generateTitle = orpc
       .join('\n'),
     ).join('\n')
 
+    // Use user's API key if provided (private mode), otherwise use server keys
+    const model = input.userApiKey
+      ? google('gemini-2.0-flash', { apiKey: input.userApiKey })
+      : google('gemini-2.0-flash')
+
     const { text } = await generateText({
-      model: withPosthog(google('gemini-2.0-flash'), {
+      model: withPosthog(model, {
         chatId: input.chatId,
         userId: context.user.id,
       }),

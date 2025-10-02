@@ -28,6 +28,7 @@ import { Stepper, StepperContent, StepperList, StepperTrigger } from '~/componen
 import { DatabaseIcon, databasesCollection, prefetchDatabaseCore } from '~/entities/database'
 import { MongoIcon } from '~/icons/mongo'
 import { MySQLIcon } from '~/icons/mysql'
+import { isPrivateMode } from '~/lib/private-mode'
 import { dbTestConnection } from '~/lib/query'
 
 export const Route = createFileRoute(
@@ -110,12 +111,15 @@ function StepCredentials({ ref, type, connectionString, setConnectionString }: {
 
 function StepSave({ type, name, connectionString, setName, onRandomName, saveInCloud, setSaveInCloud }: { type: DatabaseType, name: string, connectionString: string, setName: (name: string) => void, onRandomName: () => void, saveInCloud: boolean, setSaveInCloud: (saveInCloud: boolean) => void }) {
   const nameId = useId()
+  const offlineMode = isPrivateMode()
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Save connection</CardTitle>
-        <CardDescription>Save the connection to your account.</CardDescription>
+        <CardDescription>
+          {offlineMode ? 'Save the connection locally.' : 'Save the connection to your account.'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ConnectionDetails className="mb-6" type={type} connectionString={connectionString} />
@@ -151,20 +155,22 @@ function StepSave({ type, name, connectionString, setName, onRandomName, saveInC
               </TooltipProvider>
             </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm flex items-center gap-2">
-              <Checkbox
-                checked={saveInCloud}
-                onCheckedChange={() => setSaveInCloud(!saveInCloud)}
-              />
-              Do you want to sync the password in our cloud?
-            </label>
-            <div className="text-xs text-muted-foreground/50 text-balance">
-              Syncing passwords in our cloud allows access from any device without re-entering the password.
-              <br />
-              If not synced, we will store the connection string without the password.
+          {!offlineMode && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm flex items-center gap-2">
+                <Checkbox
+                  checked={saveInCloud}
+                  onCheckedChange={() => setSaveInCloud(!saveInCloud)}
+                />
+                Do you want to sync the password in our cloud?
+              </label>
+              <div className="text-xs text-muted-foreground/50 text-balance">
+                Syncing passwords in our cloud allows access from any device without re-entering the password.
+                <br />
+                If not synced, we will store the connection string without the password.
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -189,6 +195,7 @@ function CreateConnectionPage() {
       isPasswordExists: !!password,
       isPasswordPopulated: !!password,
       syncType: data.saveInCloud ? SyncType.Cloud : SyncType.CloudWithoutPassword,
+      isOffline: isPrivateMode(),
       createdAt: new Date(),
       updatedAt: new Date(),
     })

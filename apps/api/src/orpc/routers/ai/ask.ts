@@ -26,6 +26,7 @@ const chatInputType = type({
   'fallback?': 'boolean',
   'trigger': '"submit-message" | "regenerate-message"',
   'messageId?': 'string.uuid.v7',
+  'userApiKey?': 'string',
 })
 
 const mainModel = createRetryable({
@@ -56,6 +57,7 @@ function generateStream({
   signal,
   chatId,
   userId,
+  userApiKey,
 }: {
   messages: AppUIMessage[]
   type: typeof chatInputType.infer['type']
@@ -64,6 +66,7 @@ function generateStream({
   signal?: AbortSignal
   chatId: string
   userId: string
+  userApiKey?: string
 }) {
   console.info('messages', JSON.stringify(messages.map(message => ({
     id: message.id,
@@ -198,14 +201,27 @@ export const ask = orpc
     })
 
     try {
+      // Use user's API key if provided (private mode), otherwise use server keys
+      const model = input.userApiKey
+        ? (input.fallback
+            ? anthropic('claude-opus-4-1', { apiKey: input.userApiKey })
+            : createRetryable({
+                model: anthropic('claude-sonnet-4-5', { apiKey: input.userApiKey }),
+                retries: [
+                  anthropic('claude-opus-4-1', { apiKey: input.userApiKey }),
+                ],
+              }))
+        : (input.fallback ? fallbackModel : mainModel)
+
       const result = generateStream({
         type: input.type,
-        model: input.fallback ? fallbackModel : mainModel,
+        model,
         context: input.context,
         messages,
         signal,
         chatId: input.id,
         userId: context.user.id,
+        userApiKey: input.userApiKey,
       })
 
       const stream = result.toUIMessageStream({
