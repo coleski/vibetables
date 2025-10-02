@@ -24,10 +24,10 @@ export const Route = createFileRoute('/(protected)/_protected/settings/')({
 
 const providerLabels = {
   [AiProvider.Anthropic]: 'Anthropic (Claude)',
-  [AiProvider.OpenAI]: 'OpenAI (GPT)',
-  [AiProvider.Google]: 'Google (Gemini)',
-  [AiProvider.XAI]: 'xAI (Grok)',
 }
+
+// Only Anthropic is currently supported for private mode
+const SUPPORTED_PROVIDERS = [AiProvider.Anthropic]
 
 function SettingsPage() {
   const router = useRouter()
@@ -50,39 +50,22 @@ function SettingsPage() {
   // Add API key
   const { mutate: addKey, isPending: isAdding } = useMutation({
     mutationFn: async () => {
-      console.log('[Settings] Starting to add API key')
-      console.log('[Settings] Provider:', provider)
-      console.log('[Settings] Nickname:', nickname)
-      console.log('[Settings] API Key length:', apiKey.length)
-
       const id = v7()
-      console.log('[Settings] Generated ID:', id)
 
-      try {
-        // Store key in keychain
-        console.log('[Settings] Calling keychain.set...')
-        await keychain.set(id, apiKey)
-        console.log('[Settings] Keychain.set completed')
+      // Store key in keychain
+      await keychain.set(id, apiKey)
 
-        // Store metadata in database
-        console.log('[Settings] Inserting into database...')
-        await db.insert(apiKeys).values({
-          id,
-          provider,
-          nickname: nickname || `${providerLabels[provider]}`,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        console.log('[Settings] Database insert completed')
-      }
-      catch (error) {
-        console.error('[Settings] Error in mutationFn:', error)
-        throw error
-      }
+      // Store metadata in database
+      await db.insert(apiKeys).values({
+        id,
+        provider,
+        nickname: nickname || `${providerLabels[provider]}`,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
     },
     onSuccess: () => {
-      console.log('[Settings] Mutation succeeded')
       toast.success('API key added successfully')
       setShowForm(false)
       setNickname('')
@@ -90,7 +73,6 @@ function SettingsPage() {
       refetch()
     },
     onError: (error) => {
-      console.error('[Settings] Mutation error:', error)
       toast.error('Failed to add API key', {
         description: error.message,
       })
@@ -100,19 +82,14 @@ function SettingsPage() {
   // Delete API key
   const { mutate: deleteKey } = useMutation({
     mutationFn: async (id: string) => {
-      console.log('[Settings] Deleting API key:', id)
       await keychain.delete(id)
-      console.log('[Settings] Deleted from keychain, now deleting from database...')
       await db.delete(apiKeys).where(eq(apiKeys.id, id))
-      console.log('[Settings] Deleted from database')
     },
     onSuccess: () => {
-      console.log('[Settings] Delete mutation succeeded')
       toast.success('API key deleted')
       refetch()
     },
     onError: (error) => {
-      console.error('[Settings] Delete mutation error:', error)
       toast.error('Failed to delete API key', {
         description: error.message,
       })
@@ -194,10 +171,9 @@ function SettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={AiProvider.Anthropic}>{providerLabels[AiProvider.Anthropic]}</SelectItem>
-                        <SelectItem value={AiProvider.OpenAI}>{providerLabels[AiProvider.OpenAI]}</SelectItem>
-                        <SelectItem value={AiProvider.Google}>{providerLabels[AiProvider.Google]}</SelectItem>
-                        <SelectItem value={AiProvider.XAI}>{providerLabels[AiProvider.XAI]}</SelectItem>
+                        {SUPPORTED_PROVIDERS.map(p => (
+                          <SelectItem key={p} value={p}>{providerLabels[p]}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
