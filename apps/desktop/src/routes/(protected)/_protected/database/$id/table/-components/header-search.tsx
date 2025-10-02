@@ -9,8 +9,11 @@ import { useMutation } from '@tanstack/react-query'
 import { useStore } from '@tanstack/react-store'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
+import { AiProvider } from '~/drizzle'
 import { useDatabaseEnums } from '~/entities/database'
+import { getUserApiKey } from '~/lib/ai-helper'
 import { orpc } from '~/lib/orpc'
+import { isPrivateMode } from '~/lib/private-mode'
 import { Route } from '..'
 import { useTableColumns } from '../-queries/use-columns-query'
 import { usePageStoreContext } from '../-store'
@@ -20,7 +23,14 @@ export function HeaderSearch({ table, schema }: { table: string, schema: string 
   const store = usePageStoreContext()
   const prompt = useStore(store, state => state.prompt)
   const { mutate: generateFilter, isPending } = useMutation({
-    mutationFn: (data: { prompt: string, context: string }) => orpc.ai.filters(data),
+    mutationFn: async (data: { prompt: string, context: string }) => {
+      // Get user's API key if in private mode
+      const userApiKey = isPrivateMode()
+        ? await getUserApiKey(AiProvider.Anthropic)
+        : undefined
+
+      return orpc.ai.filters({ ...data, userApiKey })
+    },
     onSuccess: (data) => {
       store.setState(state => ({
         ...state,

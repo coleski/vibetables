@@ -1,3 +1,4 @@
+import { anthropic } from '@ai-sdk/anthropic'
 import { google } from '@ai-sdk/google'
 import { SQL_OPERATORS_LIST } from '@conar/shared/utils/sql'
 import { generateObject } from 'ai'
@@ -11,12 +12,18 @@ export const filters = orpc
   .input(type({
     prompt: 'string',
     context: 'string',
+    'userApiKey?': 'string',
   }))
   .handler(async ({ input, signal, context }) => {
     console.info('sql filters input', input.prompt)
 
+    // Use user's API key if provided (private mode), otherwise use server keys
+    const model = input.userApiKey
+      ? anthropic('claude-sonnet-4-5', { apiKey: input.userApiKey })
+      : google('gemini-2.0-flash')
+
     const { object } = await generateObject({
-      model: withPosthog(google('gemini-2.0-flash'), {
+      model: input.userApiKey ? model : withPosthog(model, {
         prompt: input.prompt,
         context: input.context,
         userId: context.user.id,
