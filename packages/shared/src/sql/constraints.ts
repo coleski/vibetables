@@ -36,5 +36,20 @@ export function constraintsSql(schema: string, table: string): Record<DatabaseTy
         AND tc."constraint_type" IN ('PRIMARY KEY', 'UNIQUE')
       ORDER BY tc."table_schema", tc."table_name", kcu."ordinal_position";
     `),
+    mysql: prepareSql(`
+      SELECT
+        tc.CONSTRAINT_NAME as constraint_name,
+        tc.CONSTRAINT_TYPE as constraint_type,
+        kcu.COLUMN_NAME as column_name
+      FROM information_schema.table_constraints tc
+      LEFT JOIN information_schema.key_column_usage kcu
+        ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+        AND tc.TABLE_SCHEMA = kcu.TABLE_SCHEMA
+        AND tc.TABLE_NAME = kcu.TABLE_NAME
+      WHERE tc.TABLE_SCHEMA = DATABASE()
+        AND tc.TABLE_NAME = '${table}'
+        AND tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE')
+      ORDER BY tc.TABLE_SCHEMA, tc.TABLE_NAME, kcu.ORDINAL_POSITION;
+    `),
   }
 }

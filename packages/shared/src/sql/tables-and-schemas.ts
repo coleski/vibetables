@@ -23,5 +23,14 @@ export function tablesAndSchemasSql(): Record<DatabaseType, string> {
         AND "table_type" = 'BASE TABLE'
       ORDER BY "table_schema", "table_name";
     `),
+    mysql: prepareSql(`
+      SELECT
+        DATABASE() AS table_schema,
+        TABLE_NAME as table_name
+      FROM information_schema.tables
+      WHERE table_schema = DATABASE()
+        AND table_type = 'BASE TABLE'
+      ORDER BY table_name;
+    `),
   }
 }

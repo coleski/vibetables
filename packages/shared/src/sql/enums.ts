@@ -36,5 +36,14 @@ export function enumsSql(): Record<DatabaseType, string> {
       JOIN pg_catalog.pg_namespace ns ON ns.oid = t.typnamespace
       WHERE ns.nspname NOT IN ('pg_catalog', 'information_schema')
     `),
+    mysql: prepareSql(`
+      SELECT
+        DATABASE() AS \`schema\`,
+        CONCAT(\`table_name\`, '.', \`column_name\`) AS \`name\`,
+        SUBSTRING_INDEX(SUBSTRING_INDEX(\`column_type\`, "'", 2), "'", -1) AS \`value\`
+      FROM \`information_schema\`.\`columns\`
+      WHERE \`table_schema\` = DATABASE()
+        AND \`column_type\` LIKE 'enum%'
+    `),
   }
 }

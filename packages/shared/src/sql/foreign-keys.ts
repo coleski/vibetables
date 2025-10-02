@@ -40,5 +40,18 @@ export function foreignKeysSql(): Record<DatabaseType, string> {
         AND ccu.table_schema = tc.table_schema
       WHERE tc.constraint_type = 'FOREIGN KEY';
     `),
+    mysql: prepareSql(`
+      SELECT
+        kcu.TABLE_SCHEMA as table_schema,
+        kcu.TABLE_NAME as table_name,
+        kcu.COLUMN_NAME as column_name,
+        kcu.CONSTRAINT_NAME as constraint_name,
+        kcu.REFERENCED_TABLE_SCHEMA as foreign_table_schema,
+        kcu.REFERENCED_TABLE_NAME as foreign_table_name,
+        kcu.REFERENCED_COLUMN_NAME as foreign_column_name
+      FROM information_schema.key_column_usage kcu
+      WHERE kcu.TABLE_SCHEMA = DATABASE()
+        AND kcu.REFERENCED_TABLE_NAME IS NOT NULL;
+    `),
   }
 }

@@ -5,5 +5,6 @@ export function dropTableSql(schema: string, table: string, cascade = false): Re
   const cascadeClause = cascade ? ' CASCADE' : ''
   return {
     postgres: prepareSql(`DROP TABLE "${schema}"."${table}"${cascadeClause}`),
+    mysql: prepareSql(`DROP TABLE \`${table}\``),
   }
 }

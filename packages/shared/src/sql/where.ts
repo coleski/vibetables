@@ -17,8 +17,13 @@ export interface SQLWhereFilter<T extends SQLOperator = SQLOperator> extends Whe
   operator: T
 }
 
-export const CUSTOM_OPERATORS_TRANSFORMERS: { [Key in CustomOperator]: (filter: CustomWhereFilter<Key>) => SQLWhereFilter } = {
-  '≈': ({ column, values }) => ({ column, operator: 'ILIKE', values: values?.map(v => `%${v}%`) }),
+export const CUSTOM_OPERATORS_TRANSFORMERS: Record<DatabaseType, { [Key in CustomOperator]: (filter: CustomWhereFilter<Key>) => SQLWhereFilter }> = {
+  postgres: {
+    '≈': ({ column, values }) => ({ column, operator: 'ILIKE', values: values?.map(v => `%${v}%`) }),
+  },
+  mysql: {
+    '≈': ({ column, values }) => ({ column, operator: 'LIKE', values: values?.map(v => `%${v}%`) }),
+  },
 }
 
 export function whereSql(filters: WhereFilter[], concatOperator: 'AND' | 'OR' = 'AND'): Record<DatabaseType, string> {
@@ -29,7 +34,7 @@ export function whereSql(filters: WhereFilter[], concatOperator: 'AND' | 'OR' = 
       if (!operator)
         throw new Error(`Invalid operator: ${filter.operator}`)
 
-      filter = CUSTOM_OPERATORS_TRANSFORMERS[operator.value as CustomOperator]?.(filter as CustomWhereFilter) ?? filter
+      filter = CUSTOM_OPERATORS_TRANSFORMERS.postgres[operator.value as CustomOperator]?.(filter as CustomWhereFilter) ?? filter
 
       if (!operator.hasValue) {
         return `"${filter.column}" ${filter.operator}`
@@ -44,6 +49,28 @@ export function whereSql(filters: WhereFilter[], concatOperator: 'AND' | 'OR' = 
       }
 
       return `"${filter.column}" ${filter.operator}`
+    }).join(` ${concatOperator} `)),
+    mysql: prepareSql(filters.map((filter) => {
+      const operator = FILTER_OPERATORS_LIST.find(o => o.value === filter.operator)
+
+      if (!operator)
+        throw new Error(`Invalid operator: ${filter.operator}`)
+
+      filter = CUSTOM_OPERATORS_TRANSFORMERS.mysql[operator.value as CustomOperator]?.(filter as CustomWhereFilter) ?? filter
+
+      if (!operator.hasValue) {
+        return `\`${filter.column}\` ${filter.operator}`
+      }
+
+      if (filter.values && filter.values.length > 0) {
+        if (operator.value.toLowerCase().includes('in')) {
+          return `\`${filter.column}\` ${filter.operator} (${filter.values.map(v => `'${v.trim()}'`).join(', ')})`
+        }
+
+        return `\`${filter.column}\` ${filter.operator} '${filter.values[0]}'`
+      }
+
+      return `\`${filter.column}\` ${filter.operator}`
     }).join(` ${concatOperator} `)),
   }
 }

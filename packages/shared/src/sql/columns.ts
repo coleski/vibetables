@@ -51,5 +51,18 @@ export function columnsSql(schema: string, table: string): Record<DatabaseType, 
         AND c.table_name = '${table}'
       ORDER BY c.ordinal_position;
     `),
+    mysql: prepareSql(`
+      SELECT
+        TABLE_NAME as \`table\`,
+        COLUMN_NAME as id,
+        COLUMN_DEFAULT as \`default\`,
+        COLUMN_TYPE as type,
+        IF(IS_NULLABLE = 'YES', TRUE, FALSE) as nullable,
+        TRUE as editable
+      FROM information_schema.columns
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = '${table}'
+      ORDER BY ORDINAL_POSITION;
+    `),
   }
 }

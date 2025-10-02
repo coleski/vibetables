@@ -9,5 +9,10 @@ export function setSql(schema: string, table: string, name: string, where: strin
       WHERE ${where.map((column, index) => `"${column}" = $${index + 2}`).join(' AND ')}
       RETURNING "${name}"
     `),
+    mysql: prepareSql(`
+      UPDATE \`${table}\`
+      SET \`${name}\` = ?
+      WHERE ${where.map(() => `\`${name}\` = ?`).join(' AND ')}
+    `),
   }
 }
