@@ -22,8 +22,8 @@ export const mssqlProxy = orpc
       password: config.password,
       database: config.database,
       options: {
-        encrypt: !!config.ssl,
-        trustServerCertificate: !config.ssl,
+        encrypt: config.ssl !== false,
+        trustServerCertificate: config.ssl === false || (typeof config.ssl === 'object' && config.ssl.rejectUnauthorized === false),
       },
     })
 
@@ -69,8 +69,8 @@ export const mssqlTestConnection = orpc
       password: config.password,
       database: config.database,
       options: {
-        encrypt: !!config.ssl,
-        trustServerCertificate: !config.ssl,
+        encrypt: config.ssl !== false,
+        trustServerCertificate: config.ssl === false || (typeof config.ssl === 'object' && config.ssl.rejectUnauthorized === false),
       },
     })
 

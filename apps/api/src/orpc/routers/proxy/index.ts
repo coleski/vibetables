@@ -1,7 +1,7 @@
 import type { DatabaseType } from '@conar/shared/enums/database-type'
 import { mssqlProxy, mssqlTestConnection } from './mssql'
-import { pgProxy, pgTestConnection } from './pg'
 import { mysqlProxy, mysqlTestConnection } from './mysql'
+import { pgProxy, pgTestConnection } from './pg'
 
 export const proxy = {
   databases: {

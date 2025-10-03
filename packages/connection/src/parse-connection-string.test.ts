@@ -264,3 +264,95 @@ describe('real-world Examples', () => {
     })
   })
 })
+
+describe('ADO.NET Connection String Format', () => {
+  it('should parse basic MSSQL ADO.NET connection string', () => {
+    const connectionString = 'server=localhost;user id=sa;password=myPassword;database=mydb;port=1433'
+    const config = parseConnectionString(connectionString)
+
+    expect(config).toEqual({
+      host: 'localhost',
+      user: 'sa',
+      password: 'myPassword',
+      database: 'mydb',
+      port: 1433,
+    })
+  })
+
+  it('should parse Azure SQL connection string', () => {
+    const connectionString = 'server=estx-prod-sql01.database.windows.net;userid=Servo;password=UsnSgggy4ey!GkWCNI5hU2IT;port=1433;database=AspireReplica'
+    const config = parseConnectionString(connectionString)
+
+    expect(config).toEqual({
+      host: 'estx-prod-sql01.database.windows.net',
+      user: 'Servo',
+      password: 'UsnSgggy4ey!GkWCNI5hU2IT',
+      port: 1433,
+      database: 'AspireReplica',
+    })
+  })
+
+  it('should handle various key aliases', () => {
+    const connectionString = 'Data Source=myserver;Initial Catalog=mydb;User ID=myuser;pwd=mypass'
+    const config = parseConnectionString(connectionString)
+
+    expect(config).toEqual({
+      host: 'myserver',
+      database: 'mydb',
+      user: 'myuser',
+      password: 'mypass',
+    })
+  })
+
+  it('should parse ADO.NET with SSL settings', () => {
+    const connectionString = 'server=localhost;user id=sa;password=myPassword;database=mydb;encrypt=true'
+    const config = parseConnectionString(connectionString)
+
+    expect(config).toEqual({
+      host: 'localhost',
+      user: 'sa',
+      password: 'myPassword',
+      database: 'mydb',
+      ssl: true,
+    })
+  })
+
+  it('should parse ADO.NET with TrustServerCertificate', () => {
+    const connectionString = 'server=localhost;user id=sa;password=myPassword;database=mydb;TrustServerCertificate=true'
+    const config = parseConnectionString(connectionString)
+
+    expect(config).toEqual({
+      host: 'localhost',
+      user: 'sa',
+      password: 'myPassword',
+      database: 'mydb',
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    })
+  })
+
+  it('should handle password with special characters including equals sign', () => {
+    const connectionString = 'server=localhost;user id=sa;password=my=Pass@word!;database=mydb'
+    const config = parseConnectionString(connectionString)
+
+    expect(config).toEqual({
+      host: 'localhost',
+      user: 'sa',
+      password: 'my=Pass@word!',
+      database: 'mydb',
+    })
+  })
+
+  it('should handle empty values in connection string', () => {
+    const connectionString = 'server=localhost;user id=sa;password=;database=mydb'
+    const config = parseConnectionString(connectionString)
+
+    expect(config).toEqual({
+      host: 'localhost',
+      user: 'sa',
+      password: '',
+      database: 'mydb',
+    })
+  })
+})

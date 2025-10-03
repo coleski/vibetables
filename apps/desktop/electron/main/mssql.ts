@@ -3,6 +3,7 @@ import type { IRecordSet, IResult } from 'mssql'
 import { createRequire } from 'node:module'
 import { parseConnectionString } from '@conar/connection'
 
+// MSSQL connection using tedious driver
 const sql = createRequire(import.meta.url)('mssql') as typeof import('mssql')
 
 export async function mssqlQuery({
@@ -23,8 +24,8 @@ export async function mssqlQuery({
     password: config.password,
     database: config.database,
     options: {
-      encrypt: !!config.ssl,
-      trustServerCertificate: !config.ssl,
+      encrypt: config.ssl !== false,
+      trustServerCertificate: config.ssl === false || (typeof config.ssl === 'object' && config.ssl.rejectUnauthorized === false),
     },
   })
 
@@ -65,8 +66,8 @@ export async function mssqlTestConnection({ connectionString }: { connectionStri
     password: config.password,
     database: config.database,
     options: {
-      encrypt: !!config.ssl,
-      trustServerCertificate: !config.ssl,
+      encrypt: config.ssl !== false,
+      trustServerCertificate: config.ssl === false || (typeof config.ssl === 'object' && config.ssl.rejectUnauthorized === false),
     },
   })
 

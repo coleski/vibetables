@@ -13,15 +13,31 @@ import { toast } from 'sonner'
 import { databasesCollection } from '~/entities/database'
 import { dbTestConnection } from '~/lib/query'
 
+function setPasswordInConnectionString(connectionString: string, password: string): string {
+  const trimmed = connectionString.trim()
+
+  // ADO.NET format
+  if (!trimmed.includes('://') && trimmed.includes(';')) {
+    const withoutPassword = trimmed.replace(/password=[^;]*/i, '')
+    if (password) {
+      return `${withoutPassword};password=${password}`.replace(/;+/g, ';').replace(/^;|;$/g, '')
+    }
+    return withoutPassword.replace(/;+/g, ';').replace(/^;|;$/g, '')
+  }
+
+  // URL format
+  const url = new SafeURL(trimmed)
+  url.password = password
+  return url.toString()
+}
+
 export function PasswordForm({ database }: { database: typeof databases.$inferSelect }) {
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
   const newConnectionString = useMemo(() => {
-    const url = new SafeURL(database.connectionString)
-    url.password = password
-    return url.toString()
+    return setPasswordInConnectionString(database.connectionString, password)
   }, [database.connectionString, password])
 
   const { mutate: savePassword, status } = useMutation({
@@ -32,11 +48,7 @@ export function PasswordForm({ database }: { database: typeof databases.$inferSe
           sync: false,
         } satisfies DatabaseMutationMetadata,
       }, (draft) => {
-        const url = new SafeURL(draft.connectionString)
-
-        url.password = password
-
-        draft.connectionString = url.toString()
+        draft.connectionString = setPasswordInConnectionString(draft.connectionString, password)
         draft.isPasswordPopulated = true
       })
     },

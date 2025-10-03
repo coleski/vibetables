@@ -20,6 +20,13 @@ export interface Config {
 }
 
 export function parseConnectionString(connectionString: string): Config {
+  // Check if this is ADO.NET format (key=value pairs with semicolons)
+  // ADO.NET format doesn't contain ://
+  if (!connectionString.includes('://') && connectionString.includes(';')) {
+    return parseADOConnectionString(connectionString)
+  }
+
+  // URL format parsing
   const parsed = new SafeURL(connectionString)
 
   const config: Config = {
@@ -36,6 +43,71 @@ export function parseConnectionString(connectionString: string): Config {
     ...config,
     ...(ssl !== undefined && ssl !== null ? { ssl } : {}),
   }
+}
+
+function parseADOConnectionString(connectionString: string): Config {
+  const config: Config = {}
+
+  // Split by semicolon and parse key=value pairs
+  const pairs = connectionString.split(';').filter(pair => pair.trim())
+
+  for (const pair of pairs) {
+    const [key, ...valueParts] = pair.split('=')
+    if (!key) continue
+    const value = valueParts.join('=').trim() // Rejoin in case value contains '='
+    const normalizedKey = key.trim().toLowerCase()
+
+    switch (normalizedKey) {
+      case 'server':
+      case 'host':
+      case 'data source':
+      case 'datasource':
+      case 'address':
+      case 'addr':
+      case 'network address':
+        config.host = value
+        break
+      case 'port':
+        config.port = Number.parseInt(value, 10)
+        break
+      case 'user':
+      case 'user id':
+      case 'userid':
+      case 'username':
+      case 'uid':
+        config.user = value
+        break
+      case 'password':
+      case 'pwd':
+        config.password = value
+        break
+      case 'database':
+      case 'initial catalog':
+      case 'initialcatalog':
+        config.database = value
+        break
+      case 'encrypt':
+      case 'ssl':
+        // Handle boolean-ish values
+        const normalizedValue = value.toLowerCase()
+        if (normalizedValue === 'true' || normalizedValue === '1' || normalizedValue === 'yes') {
+          config.ssl = true
+        } else if (normalizedValue === 'false' || normalizedValue === '0' || normalizedValue === 'no') {
+          config.ssl = false
+        }
+        break
+      case 'trustservercertificate':
+      case 'trust server certificate':
+        // This is the inverse of rejectUnauthorized
+        const trustValue = value.toLowerCase()
+        if (trustValue === 'true' || trustValue === '1' || trustValue === 'yes') {
+          config.ssl = { rejectUnauthorized: false }
+        }
+        break
+    }
+  }
+
+  return config
 }
 
 export function parseSSLConfig(searchParams: URLSearchParams): Config['ssl'] {

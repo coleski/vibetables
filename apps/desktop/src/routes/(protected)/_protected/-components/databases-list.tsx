@@ -1,5 +1,6 @@
 import type { ComponentRef } from 'react'
 import type { databases } from '~/drizzle'
+import { parseConnectionString } from '@conar/connection'
 import { SafeURL } from '@conar/shared/utils/safe-url'
 import { Badge } from '@conar/ui/components/badge'
 import { Button } from '@conar/ui/components/button'
@@ -14,15 +15,32 @@ import { DatabaseIcon, databasesCollection, useDatabaseLinkParams } from '~/enti
 import { RemoveConnectionDialog } from './remove-connection-dialog'
 import { RenameConnectionDialog } from './rename-connection-dialog'
 
+function maskConnectionString(connectionString: string, hasPassword: boolean): string {
+  // Check if ADO.NET format (no ://)
+  if (!connectionString.includes('://') && connectionString.includes(';')) {
+    const config = parseConnectionString(connectionString)
+    if (!hasPassword && !config.password) return connectionString
+
+    const passwordLength = config.password?.length || 6
+    const maskedPassword = '*'.repeat(passwordLength)
+
+    return connectionString.replace(
+      /password=[^;]*/i,
+      `password=${maskedPassword}`
+    )
+  }
+
+  // URL format
+  const url = new SafeURL(connectionString)
+  if (hasPassword || url.password) {
+    url.password = '*'.repeat(url.password.length || 6)
+  }
+  return url.toString()
+}
+
 function DatabaseCard({ database, onRemove, onRename }: { database: typeof databases.$inferSelect, onRemove: () => void, onRename: () => void }) {
   const connectionString = useMemo(() => {
-    const url = new SafeURL(database.connectionString)
-
-    if (database.isPasswordExists || url.password) {
-      url.password = '*'.repeat(url.password.length || 6)
-    }
-
-    return url.toString()
+    return maskConnectionString(database.connectionString, database.isPasswordExists)
   }, [database.connectionString, database.isPasswordExists])
 
   const params = useDatabaseLinkParams(database.id)

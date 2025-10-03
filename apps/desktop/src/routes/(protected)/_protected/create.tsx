@@ -1,8 +1,8 @@
 import type { RefObject } from 'react'
+import { parseConnectionString } from '@conar/connection'
 import { databaseLabels, DatabaseType } from '@conar/shared/enums/database-type'
 import { SyncType } from '@conar/shared/enums/sync-type'
 import { getProtocols } from '@conar/shared/utils/connections'
-import { SafeURL } from '@conar/shared/utils/safe-url'
 import { title } from '@conar/shared/utils/title'
 import { AppLogo } from '@conar/ui/components/brand/app-logo'
 import { Button } from '@conar/ui/components/button'
@@ -189,7 +189,7 @@ function CreateConnectionPage() {
   function createDatabase(data: { connectionString: string, name: string, type: DatabaseType, saveInCloud: boolean }) {
     const id = v7()
 
-    const password = new SafeURL(data.connectionString.trim()).password
+    const password = parseConnectionString(data.connectionString.trim()).password
 
     databasesCollection.insert({
       id,

@@ -66,8 +66,8 @@ export function columnsSql(schema: string, table: string): Record<DatabaseType, 
     `),
     mssql: prepareSql(`
       SELECT
-        s.name AS schema,
-        t.name AS table,
+        s.name AS [schema],
+        t.name AS [table],
         c.name AS id,
         CASE
           WHEN dc.definition IS NOT NULL THEN dc.definition

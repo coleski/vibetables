@@ -47,7 +47,7 @@ export function enumsSql(): Record<DatabaseType, string> {
     `),
     mssql: prepareSql(`
       SELECT
-        SCHEMA_NAME(t.schema_id) AS schema,
+        SCHEMA_NAME(t.schema_id) AS [schema],
         t.name AS name,
         '' AS value
       FROM sys.types t

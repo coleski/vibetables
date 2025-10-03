@@ -8,6 +8,8 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
+import { createFileRoute } from '@tanstack/react-router'
+
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as publicAuthRouteImport } from './routes/(public)/_auth'
 import { Route as protectedProtectedRouteImport } from './routes/(protected)/_protected'
@@ -24,6 +26,17 @@ import { Route as protectedProtectedDatabaseIdTableIndexRouteImport } from './ro
 import { Route as protectedProtectedDatabaseIdSqlIndexRouteImport } from './routes/(protected)/_protected/database/$id/sql/index'
 import { Route as protectedProtectedDatabaseIdEnumsIndexRouteImport } from './routes/(protected)/_protected/database/$id/enums/index'
 
+const publicRouteImport = createFileRoute('/(public)')()
+const protectedRouteImport = createFileRoute('/(protected)')()
+
+const publicRoute = publicRouteImport.update({
+  id: '/(public)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const protectedRoute = protectedRouteImport.update({
+  id: '/(protected)',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const publicAuthRoute = publicAuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => publicRoute,
@@ -102,11 +115,11 @@ const protectedProtectedDatabaseIdEnumsIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof protectedProtectedIndexRoute
   '/create': typeof protectedProtectedCreateRoute
   '/sign-in': typeof publicAuthSignInRoute
   '/sign-up': typeof publicAuthSignUpRoute
   '/two-factor': typeof publicAuthTwoFactorRouteWithChildren
-  '/': typeof protectedProtectedIndexRoute
   '/database/$id': typeof protectedProtectedDatabaseIdRouteWithChildren
   '/two-factor/setup': typeof publicAuthTwoFactorSetupRoute
   '/settings': typeof protectedProtectedSettingsIndexRoute
@@ -116,11 +129,11 @@ export interface FileRoutesByFullPath {
   '/database/$id/visualizer': typeof protectedProtectedDatabaseIdVisualizerIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof protectedProtectedIndexRoute
   '/create': typeof protectedProtectedCreateRoute
   '/sign-in': typeof publicAuthSignInRoute
   '/sign-up': typeof publicAuthSignUpRoute
   '/two-factor': typeof publicAuthTwoFactorRouteWithChildren
-  '/': typeof protectedProtectedIndexRoute
   '/database/$id': typeof protectedProtectedDatabaseIdRouteWithChildren
   '/two-factor/setup': typeof publicAuthTwoFactorSetupRoute
   '/settings': typeof protectedProtectedSettingsIndexRoute
@@ -131,7 +144,9 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/(protected)': typeof protectedRouteWithChildren
   '/(protected)/_protected': typeof protectedProtectedRouteWithChildren
+  '/(public)': typeof publicRouteWithChildren
   '/(public)/_auth': typeof publicAuthRouteWithChildren
   '/(protected)/_protected/create': typeof protectedProtectedCreateRoute
   '/(public)/_auth/sign-in': typeof publicAuthSignInRoute
@@ -149,11 +164,11 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/create'
     | '/sign-in'
     | '/sign-up'
     | '/two-factor'
-    | '/'
     | '/database/$id'
     | '/two-factor/setup'
     | '/settings'
@@ -163,11 +178,11 @@ export interface FileRouteTypes {
     | '/database/$id/visualizer'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/create'
     | '/sign-in'
     | '/sign-up'
     | '/two-factor'
-    | '/'
     | '/database/$id'
     | '/two-factor/setup'
     | '/settings'
@@ -177,7 +192,9 @@ export interface FileRouteTypes {
     | '/database/$id/visualizer'
   id:
     | '__root__'
+    | '/(protected)'
     | '/(protected)/_protected'
+    | '/(public)'
     | '/(public)/_auth'
     | '/(protected)/_protected/create'
     | '/(public)/_auth/sign-in'
@@ -193,21 +210,38 @@ export interface FileRouteTypes {
     | '/(protected)/_protected/database/$id/visualizer/'
   fileRoutesById: FileRoutesById
 }
-export interface RootRouteChildren {}
+export interface RootRouteChildren {
+  protectedRoute: typeof protectedRouteWithChildren
+  publicRoute: typeof publicRouteWithChildren
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/(public)': {
+      id: '/(public)'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof publicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(protected)': {
+      id: '/(protected)'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof protectedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(public)/_auth': {
       id: '/(public)/_auth'
-      path: ''
-      fullPath: ''
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof publicAuthRouteImport
       parentRoute: typeof publicRoute
     }
     '/(protected)/_protected': {
       id: '/(protected)/_protected'
-      path: ''
-      fullPath: ''
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof protectedProtectedRouteImport
       parentRoute: typeof protectedRoute
     }
@@ -298,7 +332,102 @@ declare module '@tanstack/react-router' {
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {}
+interface protectedProtectedDatabaseIdRouteChildren {
+  protectedProtectedDatabaseIdEnumsIndexRoute: typeof protectedProtectedDatabaseIdEnumsIndexRoute
+  protectedProtectedDatabaseIdSqlIndexRoute: typeof protectedProtectedDatabaseIdSqlIndexRoute
+  protectedProtectedDatabaseIdTableIndexRoute: typeof protectedProtectedDatabaseIdTableIndexRoute
+  protectedProtectedDatabaseIdVisualizerIndexRoute: typeof protectedProtectedDatabaseIdVisualizerIndexRoute
+}
+
+const protectedProtectedDatabaseIdRouteChildren: protectedProtectedDatabaseIdRouteChildren =
+  {
+    protectedProtectedDatabaseIdEnumsIndexRoute:
+      protectedProtectedDatabaseIdEnumsIndexRoute,
+    protectedProtectedDatabaseIdSqlIndexRoute:
+      protectedProtectedDatabaseIdSqlIndexRoute,
+    protectedProtectedDatabaseIdTableIndexRoute:
+      protectedProtectedDatabaseIdTableIndexRoute,
+    protectedProtectedDatabaseIdVisualizerIndexRoute:
+      protectedProtectedDatabaseIdVisualizerIndexRoute,
+  }
+
+const protectedProtectedDatabaseIdRouteWithChildren =
+  protectedProtectedDatabaseIdRoute._addFileChildren(
+    protectedProtectedDatabaseIdRouteChildren,
+  )
+
+interface protectedProtectedRouteChildren {
+  protectedProtectedCreateRoute: typeof protectedProtectedCreateRoute
+  protectedProtectedIndexRoute: typeof protectedProtectedIndexRoute
+  protectedProtectedDatabaseIdRoute: typeof protectedProtectedDatabaseIdRouteWithChildren
+  protectedProtectedSettingsIndexRoute: typeof protectedProtectedSettingsIndexRoute
+}
+
+const protectedProtectedRouteChildren: protectedProtectedRouteChildren = {
+  protectedProtectedCreateRoute: protectedProtectedCreateRoute,
+  protectedProtectedIndexRoute: protectedProtectedIndexRoute,
+  protectedProtectedDatabaseIdRoute:
+    protectedProtectedDatabaseIdRouteWithChildren,
+  protectedProtectedSettingsIndexRoute: protectedProtectedSettingsIndexRoute,
+}
+
+const protectedProtectedRouteWithChildren =
+  protectedProtectedRoute._addFileChildren(protectedProtectedRouteChildren)
+
+interface protectedRouteChildren {
+  protectedProtectedRoute: typeof protectedProtectedRouteWithChildren
+}
+
+const protectedRouteChildren: protectedRouteChildren = {
+  protectedProtectedRoute: protectedProtectedRouteWithChildren,
+}
+
+const protectedRouteWithChildren = protectedRoute._addFileChildren(
+  protectedRouteChildren,
+)
+
+interface publicAuthTwoFactorRouteChildren {
+  publicAuthTwoFactorSetupRoute: typeof publicAuthTwoFactorSetupRoute
+}
+
+const publicAuthTwoFactorRouteChildren: publicAuthTwoFactorRouteChildren = {
+  publicAuthTwoFactorSetupRoute: publicAuthTwoFactorSetupRoute,
+}
+
+const publicAuthTwoFactorRouteWithChildren =
+  publicAuthTwoFactorRoute._addFileChildren(publicAuthTwoFactorRouteChildren)
+
+interface publicAuthRouteChildren {
+  publicAuthSignInRoute: typeof publicAuthSignInRoute
+  publicAuthSignUpRoute: typeof publicAuthSignUpRoute
+  publicAuthTwoFactorRoute: typeof publicAuthTwoFactorRouteWithChildren
+}
+
+const publicAuthRouteChildren: publicAuthRouteChildren = {
+  publicAuthSignInRoute: publicAuthSignInRoute,
+  publicAuthSignUpRoute: publicAuthSignUpRoute,
+  publicAuthTwoFactorRoute: publicAuthTwoFactorRouteWithChildren,
+}
+
+const publicAuthRouteWithChildren = publicAuthRoute._addFileChildren(
+  publicAuthRouteChildren,
+)
+
+interface publicRouteChildren {
+  publicAuthRoute: typeof publicAuthRouteWithChildren
+}
+
+const publicRouteChildren: publicRouteChildren = {
+  publicAuthRoute: publicAuthRouteWithChildren,
+}
+
+const publicRouteWithChildren =
+  publicRoute._addFileChildren(publicRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  protectedRoute: protectedRouteWithChildren,
+  publicRoute: publicRouteWithChildren,
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()

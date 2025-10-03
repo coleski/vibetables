@@ -1,4 +1,5 @@
 import type { MutationOptions } from '@tanstack/react-query'
+import { parseConnectionString } from '@conar/connection'
 import { SyncType } from '@conar/shared/enums/sync-type'
 import { SafeURL } from '@conar/shared/utils/safe-url'
 import { createCollection } from '@tanstack/react-db'
@@ -16,12 +17,36 @@ export function waitForDatabasesSync() {
   return promise
 }
 
-function prepareConnectionStringToCloud(connectionString: string, syncType: SyncType) {
-  const url = new SafeURL(connectionString.trim())
-  if (syncType !== SyncType.Cloud) {
-    url.password = ''
+function getPassword(connectionString: string): string {
+  const config = parseConnectionString(connectionString.trim())
+  return config.password || ''
+}
+
+function setPassword(connectionString: string, password: string): string {
+  const trimmed = connectionString.trim()
+
+  // ADO.NET format
+  if (!trimmed.includes('://') && trimmed.includes(';')) {
+    // Remove existing password
+    const withoutPassword = trimmed.replace(/password=[^;]*/i, '')
+    // Add new password if provided
+    if (password) {
+      return `${withoutPassword};password=${password}`.replace(/;+/g, ';').replace(/^;|;$/g, '')
+    }
+    return withoutPassword.replace(/;+/g, ';').replace(/^;|;$/g, '')
   }
+
+  // URL format
+  const url = new SafeURL(trimmed)
+  url.password = password
   return url.toString()
+}
+
+function prepareConnectionStringToCloud(connectionString: string, syncType: SyncType) {
+  if (syncType !== SyncType.Cloud) {
+    return setPassword(connectionString, '')
+  }
+  return connectionString.trim()
 }
 
 export interface DatabaseMutationMetadata {
@@ -47,7 +72,7 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
           type: 'insert',
           value: {
             ...item.value,
-            isPasswordPopulated: !!new SafeURL(item.value.connectionString).password,
+            isPasswordPopulated: !!getPassword(item.value.connectionString),
             isOffline: null, // Cloud-synced connections (not private mode)
           },
         })
@@ -59,20 +84,20 @@ export const databasesCollection = createCollection(drizzleCollectionOptions({
           throw new Error('Entity not found')
         }
 
-        const cloudPassword = new SafeURL(item.value.connectionString).password
-        const localPassword = new SafeURL(existed.connectionString).password
-        const newConnectionString = new SafeURL(item.value.connectionString)
+        const cloudPassword = getPassword(item.value.connectionString)
+        const localPassword = getPassword(existed.connectionString)
+        let newConnectionString = item.value.connectionString
 
         if (item.value.syncType === SyncType.CloudWithoutPassword && localPassword && !cloudPassword) {
-          newConnectionString.password = localPassword
+          newConnectionString = setPassword(item.value.connectionString, localPassword)
         }
 
         write({
           type: 'update',
           value: {
             ...item.value,
-            connectionString: newConnectionString.toString(),
-            isPasswordPopulated: !!newConnectionString.password,
+            connectionString: newConnectionString,
+            isPasswordPopulated: !!getPassword(newConnectionString),
             syncType: item.value.syncType ?? SyncType.CloudWithoutPassword,
             isOffline: existed.isOffline, // Preserve private mode flag
           },
