@@ -18,30 +18,13 @@ export const Route = createFileRoute(
     const tablesAndSchemas = await queryClient.ensureQueryData(tablesAndSchemasQuery({ database: context.database }))
       .then(data => data.schemas.flatMap(({ name, tables }) => tables.map(table => ({ schema: name, table }))))
     const foreignKeys = await queryClient.ensureQueryData(databaseForeignKeysQuery({ database: context.database }))
-    const columns = (await Promise.all(
-      tablesAndSchemas.flatMap(({ schema, table }) =>
-        queryClient.ensureQueryData(databaseTableColumnsQuery({ database: context.database, schema, table })),
-      ),
-    )).flat()
-    const constraints = (await Promise.all(
-      tablesAndSchemas.flatMap(({ schema, table }) =>
-        queryClient.ensureQueryData(databaseTableConstraintsQuery({ database: context.database, schema, table })),
-      ),
-    )).flat()
 
     return {
       tablesAndSchemas,
       foreignKeys,
-      columns,
-      constraints,
     }
   },
   component: RouteComponent,
-  pendingComponent: () => (
-    <div className="size-full flex items-center border rounded-lg justify-center bg-background">
-      <AppLogo className="size-40 text-muted-foreground animate-pulse" />
-    </div>
-  ),
 })
 
 function RouteComponent() {
@@ -64,14 +47,76 @@ const edgeTypes = {
 
 function Visualizer() {
   const { id } = Route.useParams()
-  const { tablesAndSchemas, foreignKeys, columns, constraints } = Route.useLoaderData()
+  const { database } = Route.useRouteContext()
+  const { tablesAndSchemas, foreignKeys } = Route.useLoaderData()
+  const [columns, setColumns] = useState<any[]>([])
+  const [constraints, setConstraints] = useState<any[]>([])
+  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0, stage: '' })
+  const [isLoading, setIsLoading] = useState(true)
+
   const schemas = useMemo(() => [...new Set(tablesAndSchemas.map(({ schema }) => schema))], [tablesAndSchemas])
   const [schema, setSchema] = useState(schemas[0]!)
   const schemaTables = useMemo(() => tablesAndSchemas
     .filter(t => t.schema === schema)
     .map(({ table }) => table), [tablesAndSchemas, schema])
 
+  // Batch fetch data with progress updates
+  useEffect(() => {
+    const BATCH_SIZE = 5
+    const batchFetch = async <T,>(
+      items: Array<{ schema: string, table: string }>,
+      fetchFn: (schema: string, table: string) => Promise<T>,
+      stage: string,
+    ): Promise<T[]> => {
+      const results: T[] = []
+      for (let i = 0; i < items.length; i += BATCH_SIZE) {
+        const batch = items.slice(i, i + BATCH_SIZE)
+        setLoadingProgress({ current: i, total: items.length, stage })
+        const batchResults = await Promise.all(
+          batch.map(({ schema, table }) => fetchFn(schema, table)),
+        )
+        results.push(...batchResults)
+      }
+      return results
+    }
+
+    const loadData = async () => {
+      setIsLoading(true)
+      try {
+        const cols = (await batchFetch(
+          tablesAndSchemas,
+          async (schema, table) => {
+            return queryClient.ensureQueryData(databaseTableColumnsQuery({ database, schema, table }))
+          },
+          'Loading columns',
+        )).flat()
+        setColumns(cols)
+        setIsLoading(false) // Show visualizer once columns are loaded
+
+        // Load constraints in background
+        const cons = (await batchFetch(
+          tablesAndSchemas,
+          async (schema, table) => {
+            return queryClient.ensureQueryData(databaseTableConstraintsQuery({ database, schema, table }))
+          },
+          'Loading constraints',
+        )).flat()
+        setConstraints(cons)
+        setLoadingProgress({ current: 0, total: 0, stage: '' }) // Clear loading state
+      }
+      catch (error) {
+        setIsLoading(false)
+        throw error
+      }
+    }
+
+    loadData()
+  }, [database, tablesAndSchemas])
+
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
+    if (isLoading || columns.length === 0) {
+      return { nodes: [], edges: [] }
+    }
     const edges = getEdges({ foreignKeys })
     return getLayoutedElements(
       getNodes({
@@ -85,12 +130,13 @@ function Visualizer() {
       }),
       edges,
     )
-  }, [id, schema, schemaTables, columns, foreignKeys, constraints])
+  }, [id, schema, schemaTables, columns, foreignKeys, constraints, isLoading])
 
   const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges)
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes)
 
   const recalculateLayout = useCallback(() => {
+    if (isLoading || columns.length === 0) return
     const edges = getEdges({ foreignKeys })
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       getNodes({
@@ -107,7 +153,7 @@ function Visualizer() {
 
     setNodes(layoutedNodes)
     setEdges(layoutedEdges)
-  }, [id, schema, schemaTables, columns, foreignKeys, constraints, setNodes, setEdges])
+  }, [id, schema, schemaTables, columns, foreignKeys, constraints, setNodes, setEdges, isLoading])
 
   const recalculateLayoutEvent = useEffectEvent(recalculateLayout)
 
@@ -123,8 +169,36 @@ function Visualizer() {
     recalculateLayout()
   }, [schema, recalculateLayout])
 
+  if (isLoading) {
+    return (
+      <div className="size-full flex flex-col items-center border rounded-lg justify-center bg-background gap-4">
+        <AppLogo className="size-40 text-muted-foreground animate-pulse" />
+        <div className="text-center">
+          <div className="text-lg font-medium">{loadingProgress.stage}</div>
+          <div className="text-sm text-muted-foreground">
+            {loadingProgress.current} / {loadingProgress.total} tables
+          </div>
+          <div className="w-64 h-2 bg-muted rounded-full mt-2 overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative size-full overflow-hidden rounded-lg border/10 dark:border">
+      {loadingProgress.stage && (
+        <div className="absolute z-20 top-2 left-2 bg-background/95 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg">
+          <div className="text-xs font-medium">{loadingProgress.stage}</div>
+          <div className="text-xs text-muted-foreground">
+            {loadingProgress.current} / {loadingProgress.total}
+          </div>
+        </div>
+      )}
       <div className="absolute z-10 top-2 right-2">
         <Select
           value={schema}
