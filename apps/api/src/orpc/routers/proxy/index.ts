@@ -1,4 +1,5 @@
 import type { DatabaseType } from '@conar/shared/enums/database-type'
+import { mssqlProxy, mssqlTestConnection } from './mssql'
 import { pgProxy, pgTestConnection } from './pg'
 
 export const proxy = {
@@ -6,6 +7,10 @@ export const proxy = {
     postgres: {
       query: pgProxy,
       test: pgTestConnection,
+    },
+    mssql: {
+      query: mssqlProxy,
+      test: mssqlTestConnection,
     },
   } satisfies Record<DatabaseType, {
     query: typeof pgProxy

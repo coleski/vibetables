@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { decrypt, encrypt } from '@conar/shared/encryption'
 import { DatabaseType } from '@conar/shared/enums/database-type'
 import { app, ipcMain } from 'electron'
+import { mssqlQuery, mssqlTestConnection } from './mssql'
 import { pgQuery, pgTestConnection } from './pg'
 
 const { autoUpdater } = createRequire(import.meta.url)('electron-updater') as typeof import('electron-updater')
@@ -22,6 +23,7 @@ const databases = {
   }) => {
     const queryMap = {
       [DatabaseType.Postgres]: pgTestConnection,
+      [DatabaseType.MSSQL]: mssqlTestConnection,
     }
 
     try {
@@ -48,6 +50,7 @@ const databases = {
   }) => {
     const queryMap = {
       [DatabaseType.Postgres]: pgQuery,
+      [DatabaseType.MSSQL]: mssqlQuery,
     }
 
     try {

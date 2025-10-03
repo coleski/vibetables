@@ -7,5 +7,9 @@ export function deleteRowsSql(table: string, schema: string, primaryKeys: Record
       DELETE FROM "${schema}"."${table}"
       WHERE ${primaryKeys.map(pks => Object.entries(pks)).map(pks => pks.map(([key, value]) => `"${key}" = '${value}'`).join(' AND ')).map(str => `(${str})`).join(' OR ')}
     `),
+    mssql: prepareSql(`
+      DELETE FROM [${schema}].[${table}]
+      WHERE ${primaryKeys.map(pks => Object.entries(pks)).map(pks => pks.map(([key, value]) => `[${key}] = '${value}'`).join(' AND ')).map(str => `(${str})`).join(' OR ')}
+    `),
   }
 }

@@ -9,5 +9,11 @@ export function setSql(schema: string, table: string, name: string, where: strin
       WHERE ${where.map((column, index) => `"${column}" = $${index + 2}`).join(' AND ')}
       RETURNING "${name}"
     `),
+    mssql: prepareSql(`
+      UPDATE [${schema}].[${table}]
+      SET [${name}] = @param0
+      OUTPUT INSERTED.[${name}]
+      WHERE ${where.map((column, index) => `[${column}] = @param${index + 1}`).join(' AND ')}
+    `),
   }
 }

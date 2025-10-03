@@ -42,5 +42,25 @@ export function constraintsSql(schema: string, table: string): Record<DatabaseTy
         AND tc."constraint_type" IN ('PRIMARY KEY', 'UNIQUE')
       ORDER BY tc."table_schema", tc."table_name", kcu."ordinal_position";
     `),
+    mssql: prepareSql(`
+      SELECT
+        s.name AS table_schema,
+        t.name AS table_name,
+        kc.name AS constraint_name,
+        CASE
+          WHEN kc.type = 'PK' THEN 'PRIMARY KEY'
+          WHEN kc.type = 'UQ' THEN 'UNIQUE'
+        END AS constraint_type,
+        c.name AS column_name
+      FROM sys.key_constraints kc
+      INNER JOIN sys.tables t ON kc.parent_object_id = t.object_id
+      INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+      INNER JOIN sys.index_columns ic ON kc.parent_object_id = ic.object_id AND kc.unique_index_id = ic.index_id
+      INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+      WHERE s.name = '${schema}'
+        AND t.name = '${table}'
+        AND kc.type IN ('PK', 'UQ')
+      ORDER BY s.name, t.name, ic.key_ordinal;
+    `),
   }
 }

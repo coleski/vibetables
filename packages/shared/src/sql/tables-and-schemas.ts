@@ -23,5 +23,14 @@ export function tablesAndSchemasSql(): Record<DatabaseType, string> {
         AND "table_type" = 'BASE TABLE'
       ORDER BY "table_schema", "table_name";
     `),
+    mssql: prepareSql(`
+      SELECT
+        TABLE_SCHEMA AS table_schema,
+        TABLE_NAME AS table_name
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE TABLE_TYPE = 'BASE TABLE'
+        AND TABLE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA')
+      ORDER BY TABLE_SCHEMA, TABLE_NAME;
+    `),
   }
 }

@@ -64,6 +64,10 @@ function StepType({ type, setType }: { type: DatabaseType, setType: (type: Datab
             <DatabaseIcon type={DatabaseType.Postgres} className="size-4 shrink-0 text-primary" />
             {databaseLabels[DatabaseType.Postgres]}
           </ToggleGroupItem>
+          <ToggleGroupItem value={DatabaseType.MSSQL} aria-label="Microsoft SQL Server">
+            <DatabaseIcon type={DatabaseType.MSSQL} className="size-4 shrink-0 text-primary" />
+            {databaseLabels[DatabaseType.MSSQL]}
+          </ToggleGroupItem>
           <ToggleGroupItem value="" disabled aria-label="MySQL">
             <MySQLIcon />
             MySQL (soon)

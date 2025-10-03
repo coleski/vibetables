@@ -36,5 +36,13 @@ export function enumsSql(): Record<DatabaseType, string> {
       JOIN pg_catalog.pg_namespace ns ON ns.oid = t.typnamespace
       WHERE ns.nspname NOT IN ('pg_catalog', 'information_schema')
     `),
+    mssql: prepareSql(`
+      SELECT
+        SCHEMA_NAME(t.schema_id) AS schema,
+        t.name AS name,
+        '' AS value
+      FROM sys.types t
+      WHERE t.is_user_defined = 1 AND 1 = 0
+    `),
   }
 }

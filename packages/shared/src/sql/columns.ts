@@ -53,5 +53,29 @@ export function columnsSql(schema: string, table: string): Record<DatabaseType, 
         AND c.table_name = '${table}'
       ORDER BY c.ordinal_position;
     `),
+    mssql: prepareSql(`
+      SELECT
+        s.name AS schema,
+        t.name AS table,
+        c.name AS id,
+        CASE
+          WHEN dc.definition IS NOT NULL THEN dc.definition
+          ELSE NULL
+        END AS [default],
+        ty.name AS type,
+        c.is_nullable AS nullable,
+        CASE
+          WHEN c.is_identity = 1 OR c.is_computed = 1 THEN CAST(0 AS BIT)
+          ELSE CAST(1 AS BIT)
+        END AS editable
+      FROM sys.columns c
+      INNER JOIN sys.tables t ON c.object_id = t.object_id
+      INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+      INNER JOIN sys.types ty ON c.user_type_id = ty.user_type_id
+      LEFT JOIN sys.default_constraints dc ON c.default_object_id = dc.object_id
+      WHERE s.name = '${schema}'
+        AND t.name = '${table}'
+      ORDER BY c.column_id;
+    `),
   }
 }
