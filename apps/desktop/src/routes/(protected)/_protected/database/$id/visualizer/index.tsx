@@ -2,6 +2,7 @@ import { AppLogo } from '@conar/ui/components/brand/app-logo'
 import { ReactFlowEdge } from '@conar/ui/components/react-flow/edge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@conar/ui/components/select'
 import { useMountedEffect } from '@conar/ui/hookas/use-mounted-effect'
+import { useQueries } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState } from '@xyflow/react'
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react'
@@ -49,10 +50,6 @@ function Visualizer() {
   const { id } = Route.useParams()
   const { database } = Route.useRouteContext()
   const { tablesAndSchemas, foreignKeys } = Route.useLoaderData()
-  const [columns, setColumns] = useState<any[]>([])
-  const [constraints, setConstraints] = useState<any[]>([])
-  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0, stage: '' })
-  const [isLoading, setIsLoading] = useState(true)
 
   const schemas = useMemo(() => [...new Set(tablesAndSchemas.map(({ schema }) => schema))], [tablesAndSchemas])
   const [schema, setSchema] = useState(schemas[0]!)
@@ -60,61 +57,39 @@ function Visualizer() {
     .filter(t => t.schema === schema)
     .map(({ table }) => table), [tablesAndSchemas, schema])
 
-  // Batch fetch data with progress updates
-  useEffect(() => {
-    const BATCH_SIZE = 5
-    const batchFetch = async <T,>(
-      items: Array<{ schema: string, table: string }>,
-      fetchFn: (schema: string, table: string) => Promise<T>,
-      stage: string,
-    ): Promise<T[]> => {
-      const results: T[] = []
-      for (let i = 0; i < items.length; i += BATCH_SIZE) {
-        const batch = items.slice(i, i + BATCH_SIZE)
-        setLoadingProgress({ current: i, total: items.length, stage })
-        const batchResults = await Promise.all(
-          batch.map(({ schema, table }) => fetchFn(schema, table)),
-        )
-        results.push(...batchResults)
-      }
-      return results
-    }
+  // Fetch columns for all tables using React Query (with caching)
+  const columnQueries = useQueries({
+    queries: tablesAndSchemas.map(({ schema, table }) => ({
+      ...databaseTableColumnsQuery({ database, schema, table }),
+      staleTime: Infinity, // Keep cached data forever
+    })),
+  })
 
-    const loadData = async () => {
-      setIsLoading(true)
-      try {
-        const cols = (await batchFetch(
-          tablesAndSchemas,
-          async (schema, table) => {
-            return queryClient.ensureQueryData(databaseTableColumnsQuery({ database, schema, table }))
-          },
-          'Loading columns',
-        )).flat()
-        setColumns(cols)
-        setIsLoading(false) // Show visualizer once columns are loaded
+  // Fetch constraints for all tables using React Query (with caching)
+  const constraintQueries = useQueries({
+    queries: tablesAndSchemas.map(({ schema, table }) => ({
+      ...databaseTableConstraintsQuery({ database, schema, table }),
+      staleTime: Infinity, // Keep cached data forever
+    })),
+  })
 
-        // Load constraints in background
-        const cons = (await batchFetch(
-          tablesAndSchemas,
-          async (schema, table) => {
-            return queryClient.ensureQueryData(databaseTableConstraintsQuery({ database, schema, table }))
-          },
-          'Loading constraints',
-        )).flat()
-        setConstraints(cons)
-        setLoadingProgress({ current: 0, total: 0, stage: '' }) // Clear loading state
-      }
-      catch (error) {
-        setIsLoading(false)
-        throw error
-      }
-    }
+  const columnsLoading = columnQueries.some(q => q.isLoading)
+  const constraintsLoading = constraintQueries.some(q => q.isLoading)
+  const columnsLoaded = columnQueries.filter(q => q.isSuccess).length
+  const constraintsLoaded = constraintQueries.filter(q => q.isSuccess).length
 
-    loadData()
-  }, [database, tablesAndSchemas])
+  // Stable columns and constraints arrays
+  const columns = useMemo(() => columnQueries.flatMap(q => q.data ?? []), [columnsLoaded])
+  const constraints = useMemo(() => constraintQueries.flatMap(q => q.data ?? []), [constraintsLoaded])
+
+  const loadingProgress = {
+    current: columnsLoading ? columnsLoaded : constraintsLoaded,
+    total: tablesAndSchemas.length,
+    stage: columnsLoading ? 'Loading columns' : (constraintsLoading ? 'Loading constraints' : ''),
+  }
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
-    if (isLoading || columns.length === 0) {
+    if (columnsLoading || columns.length === 0) {
       return { nodes: [], edges: [] }
     }
     const edges = getEdges({ foreignKeys })
@@ -130,13 +105,13 @@ function Visualizer() {
       }),
       edges,
     )
-  }, [id, schema, schemaTables, columns, foreignKeys, constraints, isLoading])
+  }, [id, schema, schemaTables, columnsLoading, columns, constraints, foreignKeys])
 
   const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges)
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes)
 
   const recalculateLayout = useCallback(() => {
-    if (isLoading || columns.length === 0) return
+    if (columnsLoading || columns.length === 0) return
     const edges = getEdges({ foreignKeys })
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       getNodes({
@@ -153,7 +128,7 @@ function Visualizer() {
 
     setNodes(layoutedNodes)
     setEdges(layoutedEdges)
-  }, [id, schema, schemaTables, columns, foreignKeys, constraints, setNodes, setEdges, isLoading])
+  }, [id, schema, schemaTables, columnsLoading, columns, constraints, foreignKeys, setNodes, setEdges])
 
   const recalculateLayoutEvent = useEffectEvent(recalculateLayout)
 
@@ -169,7 +144,7 @@ function Visualizer() {
     recalculateLayout()
   }, [schema, recalculateLayout])
 
-  if (isLoading) {
+  if (columnsLoading) {
     return (
       <div className="size-full flex flex-col items-center border rounded-lg justify-center bg-background gap-4">
         <AppLogo className="size-40 text-muted-foreground animate-pulse" />
