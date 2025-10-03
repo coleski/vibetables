@@ -45,5 +45,13 @@ export function enumsSql(): Record<DatabaseType, string> {
       WHERE \`table_schema\` = DATABASE()
         AND \`column_type\` LIKE 'enum%'
     `),
+    mssql: prepareSql(`
+      SELECT
+        SCHEMA_NAME(t.schema_id) AS schema,
+        t.name AS name,
+        '' AS value
+      FROM sys.types t
+      WHERE t.is_user_defined = 1 AND 1 = 0
+    `),
   }
 }

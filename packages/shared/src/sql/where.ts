@@ -24,6 +24,9 @@ export const CUSTOM_OPERATORS_TRANSFORMERS: Record<DatabaseType, { [Key in Custo
   mysql: {
     '≈': ({ column, values }) => ({ column, operator: 'LIKE', values: values?.map(v => `%${v}%`) }),
   },
+  mssql: {
+    '≈': ({ column, values }) => ({ column, operator: 'LIKE', values: values?.map(v => `%${v}%`) }),
+  },
 }
 
 export function whereSql(filters: WhereFilter[], concatOperator: 'AND' | 'OR' = 'AND'): Record<DatabaseType, string> {
@@ -71,6 +74,31 @@ export function whereSql(filters: WhereFilter[], concatOperator: 'AND' | 'OR' = 
       }
 
       return `\`${filter.column}\` ${filter.operator}`
+    }).join(` ${concatOperator} `)),
+    mssql: prepareSql(filters.map((filter) => {
+      const operator = FILTER_OPERATORS_LIST.find(o => o.value === filter.operator)
+
+      if (!operator)
+        throw new Error(`Invalid operator: ${filter.operator}`)
+
+      filter = CUSTOM_OPERATORS_TRANSFORMERS.mssql[operator.value as CustomOperator]?.(filter as CustomWhereFilter) ?? filter
+
+      // Replace ILIKE with LIKE for MSSQL (case-insensitive by default)
+      const mssqlOperator = filter.operator === 'ILIKE' ? 'LIKE' : filter.operator
+
+      if (!operator.hasValue) {
+        return `[${filter.column}] ${mssqlOperator}`
+      }
+
+      if (filter.values && filter.values.length > 0) {
+        if (operator.value.toLowerCase().includes('in')) {
+          return `[${filter.column}] ${mssqlOperator} (${filter.values.map(v => `'${v.trim()}'`).join(', ')})`
+        }
+
+        return `[${filter.column}] ${mssqlOperator} '${filter.values[0]}'`
+      }
+
+      return `[${filter.column}] ${mssqlOperator}`
     }).join(` ${concatOperator} `)),
   }
 }

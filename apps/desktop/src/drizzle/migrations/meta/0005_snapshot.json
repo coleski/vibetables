@@ -277,7 +277,8 @@
       "schema": "public",
       "values": [
         "postgres",
-        "mysql"
+        "mysql",
+        "mssql"
       ]
     },
     "public.sync_type": {

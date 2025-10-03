@@ -14,5 +14,11 @@ export function setSql(schema: string, table: string, name: string, where: strin
       SET \`${name}\` = ?
       WHERE ${where.map(() => `\`${name}\` = ?`).join(' AND ')}
     `),
+    mssql: prepareSql(`
+      UPDATE [${schema}].[${table}]
+      SET [${name}] = @param0
+      OUTPUT INSERTED.[${name}]
+      WHERE ${where.map((column, index) => `[${column}] = @param${index + 1}`).join(' AND ')}
+    `),
   }
 }

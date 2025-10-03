@@ -6,5 +6,6 @@ export function dropTableSql(schema: string, table: string, cascade = false): Re
   return {
     postgres: prepareSql(`DROP TABLE "${schema}"."${table}"${cascadeClause}`),
     mysql: prepareSql(`DROP TABLE \`${table}\``),
+    mssql: prepareSql(`DROP TABLE [${schema}].[${table}]`),
   }
 }

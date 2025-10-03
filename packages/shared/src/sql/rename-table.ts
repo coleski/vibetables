@@ -5,5 +5,6 @@ export function renameTableSql(schema: string, oldTable: string, newTable: strin
   return {
     postgres: prepareSql(`ALTER TABLE "${schema}"."${oldTable}" RENAME TO "${newTable}"`),
     mysql: prepareSql(`RENAME TABLE \`${oldTable}\` TO \`${newTable}\``),
+    mssql: prepareSql(`EXEC sp_rename '[${schema}].[${oldTable}]', '${newTable}'`),
   }
 }

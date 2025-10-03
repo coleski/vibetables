@@ -24,5 +24,12 @@ export function totalSql(schema: string, table: string, query: {
         \`${table}\`
       ${query.where ? `WHERE ${query.where}` : ''}
     `),
+    mssql: prepareSql(`
+      SELECT
+        COUNT(*) AS total
+      FROM
+        [${schema}].[${table}]
+      ${query.where ? `WHERE ${query.where}` : ''}
+    `),
   }
 }

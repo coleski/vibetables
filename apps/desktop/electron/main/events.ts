@@ -4,6 +4,7 @@ import { decrypt, encrypt } from '@conar/shared/encryption'
 import { DatabaseType } from '@conar/shared/enums/database-type'
 import { app, ipcMain } from 'electron'
 import Store from 'electron-store'
+import { mssqlQuery, mssqlTestConnection } from './mssql'
 import { pgQuery, pgTestConnection } from './pg'
 import { mysqlQuery, mysqlTestConnection } from './mysql'
 
@@ -31,6 +32,7 @@ const databases = {
     const queryMap = {
       [DatabaseType.Postgres]: pgTestConnection,
       [DatabaseType.MySQL]: mysqlTestConnection,
+      [DatabaseType.MSSQL]: mssqlTestConnection,
     }
 
     try {
@@ -58,6 +60,7 @@ const databases = {
     const queryMap = {
       [DatabaseType.Postgres]: pgQuery,
       [DatabaseType.MySQL]: mysqlQuery,
+      [DatabaseType.MSSQL]: mssqlQuery,
     }
 
     try {
