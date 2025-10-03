@@ -17,5 +17,12 @@ export function totalSql(schema: string, table: string, query: {
         "${schema}"."${table}"
       ${query.where ? `WHERE ${query.where}` : ''}
     `),
+    mysql: prepareSql(`
+      SELECT
+        COUNT(*) AS \`total\`
+      FROM
+        \`${table}\`
+      ${query.where ? `WHERE ${query.where}` : ''}
+    `),
   }
 }

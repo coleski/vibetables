@@ -10,14 +10,10 @@ const constraintTypeMap = {
 } as const satisfies Record<typeof constraintType.infer, string>
 
 export const constraintsType = type({
-  table_schema: 'string',
-  table_name: 'string',
   constraint_name: 'string',
   constraint_type: constraintType,
   column_name: 'string | null',
 }).pipe(item => ({
-  schema: item.table_schema,
-  table: item.table_name,
   name: item.constraint_name,
   type: constraintTypeMap[item.constraint_type],
   column: item.column_name,
@@ -27,8 +23,6 @@ export function constraintsSql(schema: string, table: string): Record<DatabaseTy
   return {
     postgres: prepareSql(`
       SELECT
-        tc."table_schema",
-        tc."table_name",
         tc."constraint_name",
         tc."constraint_type",
         kcu."column_name"
@@ -41,6 +35,21 @@ export function constraintsSql(schema: string, table: string): Record<DatabaseTy
         AND tc."table_name" = '${table}'
         AND tc."constraint_type" IN ('PRIMARY KEY', 'UNIQUE')
       ORDER BY tc."table_schema", tc."table_name", kcu."ordinal_position";
+    `),
+    mysql: prepareSql(`
+      SELECT
+        tc.CONSTRAINT_NAME as constraint_name,
+        tc.CONSTRAINT_TYPE as constraint_type,
+        kcu.COLUMN_NAME as column_name
+      FROM information_schema.table_constraints tc
+      LEFT JOIN information_schema.key_column_usage kcu
+        ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+        AND tc.TABLE_SCHEMA = kcu.TABLE_SCHEMA
+        AND tc.TABLE_NAME = kcu.TABLE_NAME
+      WHERE tc.TABLE_SCHEMA = DATABASE()
+        AND tc.TABLE_NAME = '${table}'
+        AND tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE')
+      ORDER BY tc.TABLE_SCHEMA, tc.TABLE_NAME, kcu.ORDINAL_POSITION;
     `),
   }
 }

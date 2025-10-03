@@ -4,6 +4,7 @@ import { decrypt, encrypt } from '@conar/shared/encryption'
 import { DatabaseType } from '@conar/shared/enums/database-type'
 import { app, ipcMain } from 'electron'
 import { pgQuery, pgTestConnection } from './pg'
+import { mysqlQuery, mysqlTestConnection } from './mysql'
 
 const { autoUpdater } = createRequire(import.meta.url)('electron-updater') as typeof import('electron-updater')
 
@@ -22,6 +23,7 @@ const databases = {
   }) => {
     const queryMap = {
       [DatabaseType.Postgres]: pgTestConnection,
+      [DatabaseType.MySQL]: mysqlTestConnection,
     }
 
     try {
@@ -48,6 +50,7 @@ const databases = {
   }) => {
     const queryMap = {
       [DatabaseType.Postgres]: pgQuery,
+      [DatabaseType.MySQL]: mysqlQuery,
     }
 
     try {

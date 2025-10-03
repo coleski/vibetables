@@ -17,5 +17,13 @@ export function rowsSql(schema: string, table: string, query: {
       LIMIT ${query.limit}
       OFFSET ${query.offset}
     `),
+    mysql: prepareSql(`
+      SELECT ${query.select ? query.select.map(col => `\`${col}\``).join(', ') : '*'}
+      FROM \`${table}\`
+      ${query.where ? `WHERE ${query.where}` : ''}
+      ${query.orderBy && Object.keys(query.orderBy).length > 0 ? `ORDER BY ${Object.entries(query.orderBy).map(([column, order]) => `\`${column}\` ${order}`).join(', ')}` : ''}
+      LIMIT ${query.limit}
+      OFFSET ${query.offset}
+    `),
   }
 }
