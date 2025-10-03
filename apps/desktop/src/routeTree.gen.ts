@@ -18,6 +18,7 @@ import { Route as publicAuthTwoFactorRouteImport } from './routes/(public)/_auth
 import { Route as publicAuthSignUpRouteImport } from './routes/(public)/_auth/sign-up'
 import { Route as publicAuthSignInRouteImport } from './routes/(public)/_auth/sign-in'
 import { Route as protectedProtectedCreateRouteImport } from './routes/(protected)/_protected/create'
+import { Route as protectedProtectedSettingsIndexRouteImport } from './routes/(protected)/_protected/settings/index'
 import { Route as publicAuthTwoFactorSetupRouteImport } from './routes/(public)/_auth/two-factor.setup'
 import { Route as protectedProtectedDatabaseIdRouteImport } from './routes/(protected)/_protected/database/$id'
 import { Route as protectedProtectedDatabaseIdVisualizerIndexRouteImport } from './routes/(protected)/_protected/database/$id/visualizer/index'
@@ -70,6 +71,12 @@ const protectedProtectedCreateRoute =
     path: '/create',
     getParentRoute: () => protectedProtectedRoute,
   } as any)
+const protectedProtectedSettingsIndexRoute =
+  protectedProtectedSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => protectedProtectedRoute,
+  } as any)
 const publicAuthTwoFactorSetupRoute =
   publicAuthTwoFactorSetupRouteImport.update({
     id: '/setup',
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/two-factor': typeof publicAuthTwoFactorRouteWithChildren
   '/database/$id': typeof protectedProtectedDatabaseIdRouteWithChildren
   '/two-factor/setup': typeof publicAuthTwoFactorSetupRoute
+  '/settings': typeof protectedProtectedSettingsIndexRoute
   '/database/$id/enums': typeof protectedProtectedDatabaseIdEnumsIndexRoute
   '/database/$id/sql': typeof protectedProtectedDatabaseIdSqlIndexRoute
   '/database/$id/table': typeof protectedProtectedDatabaseIdTableIndexRoute
@@ -128,6 +136,7 @@ export interface FileRoutesByTo {
   '/two-factor': typeof publicAuthTwoFactorRouteWithChildren
   '/database/$id': typeof protectedProtectedDatabaseIdRouteWithChildren
   '/two-factor/setup': typeof publicAuthTwoFactorSetupRoute
+  '/settings': typeof protectedProtectedSettingsIndexRoute
   '/database/$id/enums': typeof protectedProtectedDatabaseIdEnumsIndexRoute
   '/database/$id/sql': typeof protectedProtectedDatabaseIdSqlIndexRoute
   '/database/$id/table': typeof protectedProtectedDatabaseIdTableIndexRoute
@@ -146,6 +155,7 @@ export interface FileRoutesById {
   '/(protected)/_protected/': typeof protectedProtectedIndexRoute
   '/(protected)/_protected/database/$id': typeof protectedProtectedDatabaseIdRouteWithChildren
   '/(public)/_auth/two-factor/setup': typeof publicAuthTwoFactorSetupRoute
+  '/(protected)/_protected/settings/': typeof protectedProtectedSettingsIndexRoute
   '/(protected)/_protected/database/$id/enums/': typeof protectedProtectedDatabaseIdEnumsIndexRoute
   '/(protected)/_protected/database/$id/sql/': typeof protectedProtectedDatabaseIdSqlIndexRoute
   '/(protected)/_protected/database/$id/table/': typeof protectedProtectedDatabaseIdTableIndexRoute
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/two-factor'
     | '/database/$id'
     | '/two-factor/setup'
+    | '/settings'
     | '/database/$id/enums'
     | '/database/$id/sql'
     | '/database/$id/table'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/two-factor'
     | '/database/$id'
     | '/two-factor/setup'
+    | '/settings'
     | '/database/$id/enums'
     | '/database/$id/sql'
     | '/database/$id/table'
@@ -191,6 +203,7 @@ export interface FileRouteTypes {
     | '/(protected)/_protected/'
     | '/(protected)/_protected/database/$id'
     | '/(public)/_auth/two-factor/setup'
+    | '/(protected)/_protected/settings/'
     | '/(protected)/_protected/database/$id/enums/'
     | '/(protected)/_protected/database/$id/sql/'
     | '/(protected)/_protected/database/$id/table/'
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedProtectedCreateRouteImport
       parentRoute: typeof protectedProtectedRoute
     }
+    '/(protected)/_protected/settings/': {
+      id: '/(protected)/_protected/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof protectedProtectedSettingsIndexRouteImport
+      parentRoute: typeof protectedProtectedRoute
+    }
     '/(public)/_auth/two-factor/setup': {
       id: '/(public)/_auth/two-factor/setup'
       path: '/setup'
@@ -340,6 +360,7 @@ interface protectedProtectedRouteChildren {
   protectedProtectedCreateRoute: typeof protectedProtectedCreateRoute
   protectedProtectedIndexRoute: typeof protectedProtectedIndexRoute
   protectedProtectedDatabaseIdRoute: typeof protectedProtectedDatabaseIdRouteWithChildren
+  protectedProtectedSettingsIndexRoute: typeof protectedProtectedSettingsIndexRoute
 }
 
 const protectedProtectedRouteChildren: protectedProtectedRouteChildren = {
@@ -347,6 +368,7 @@ const protectedProtectedRouteChildren: protectedProtectedRouteChildren = {
   protectedProtectedIndexRoute: protectedProtectedIndexRoute,
   protectedProtectedDatabaseIdRoute:
     protectedProtectedDatabaseIdRouteWithChildren,
+  protectedProtectedSettingsIndexRoute: protectedProtectedSettingsIndexRoute,
 }
 
 const protectedProtectedRouteWithChildren =

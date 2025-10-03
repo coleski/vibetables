@@ -3,10 +3,17 @@ import { createRequire } from 'node:module'
 import { decrypt, encrypt } from '@conar/shared/encryption'
 import { DatabaseType } from '@conar/shared/enums/database-type'
 import { app, ipcMain } from 'electron'
+import Store from 'electron-store'
 import { pgQuery, pgTestConnection } from './pg'
 import { mysqlQuery, mysqlTestConnection } from './mysql'
 
 const { autoUpdater } = createRequire(import.meta.url)('electron-updater') as typeof import('electron-updater')
+
+// Secure store for API keys
+const apiKeyStore = new Store({
+  name: 'api-keys',
+  encryptionKey: 'conar-api-keys-encryption',
+})
 
 const encryption = {
   encrypt,
@@ -79,11 +86,25 @@ const versions = {
   app: () => app.getVersion(),
 }
 
+const _keychain = {
+  set: ({ id, apiKey }: { id: string, apiKey: string }) => {
+    apiKeyStore.set(id, apiKey)
+  },
+  get: ({ id }: { id: string }) => {
+    return apiKeyStore.get(id) as string | null ?? null
+  },
+  delete: ({ id }: { id: string }) => {
+    apiKeyStore.delete(id)
+    return true
+  },
+}
+
 export const electron = {
   databases,
   encryption,
   app: _app,
   versions,
+  keychain: _keychain,
 }
 
 export function initElectronEvents() {

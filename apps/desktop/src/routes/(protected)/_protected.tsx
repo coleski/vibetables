@@ -7,6 +7,7 @@ import { useChatsMessagesSync, useChatsSync } from '~/entities/chat/sync'
 import { useDatabasesSync } from '~/entities/database'
 import { useQueriesSync } from '~/entities/query/sync'
 import { authClient } from '~/lib/auth'
+import { isPrivateMode } from '~/lib/private-mode'
 import { ActionsCenter } from './-components/actions-center'
 
 const os = getOS(navigator.userAgent)
@@ -19,6 +20,7 @@ function ProtectedLayout() {
   const { data } = authClient.useSession()
   const router = useRouter()
   const { online } = useNetwork()
+  const offlineMode = isPrivateMode()
 
   const { sync: syncDatabases } = useDatabasesSync()
   const { sync: syncQueries } = useQueriesSync()
@@ -26,14 +28,15 @@ function ProtectedLayout() {
   const { sync: syncChatsMessages } = useChatsMessagesSync()
 
   useEffect(() => {
-    if (!data?.user || !online)
+    // Skip sync if offline mode is enabled
+    if (offlineMode || !data?.user || !online)
       return
 
     syncDatabases()
     syncChats()
     syncChatsMessages()
     syncQueries()
-  }, [data?.user, online, syncDatabases, syncQueries, syncChats, syncChatsMessages])
+  }, [offlineMode, data?.user, online, syncDatabases, syncQueries, syncChats, syncChatsMessages])
 
   useKeyboardEvent(e => e.key === 'n' && (os.type === 'macos' ? e.metaKey : e.ctrlKey), () => {
     router.navigate({ to: '/create' })

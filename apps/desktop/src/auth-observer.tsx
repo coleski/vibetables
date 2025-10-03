@@ -3,6 +3,7 @@ import { useLocation, useRouter } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { identifyUser } from '~/lib/events'
+import { isPrivateMode } from '~/lib/private-mode'
 import { authClient, bearerToken } from './lib/auth'
 import { handleDeepLink } from './lib/deep-links'
 
@@ -45,6 +46,14 @@ export function AuthObserver() {
 
     if (data?.user && authRoutes.includes(location.pathname)) {
       router.navigate({ to: '/' })
+    }
+
+    // If offline mode is enabled, skip authentication checks
+    if (isPrivateMode()) {
+      if (authRoutes.includes(location.pathname)) {
+        router.navigate({ to: '/' })
+      }
+      return
     }
 
     if (!data?.user && !publicRoutes.includes(location.pathname)) {

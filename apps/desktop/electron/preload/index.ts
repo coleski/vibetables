@@ -63,6 +63,11 @@ contextBridge.exposeInMainWorld('electron', {
     encrypt: arg => handleError(() => ipcRenderer.invoke('encryption.encrypt', arg), () => arg),
     decrypt: arg => handleError(() => ipcRenderer.invoke('encryption.decrypt', arg), () => arg),
   },
+  keychain: {
+    set: arg => handleError(() => ipcRenderer.invoke('keychain.set', arg), () => arg),
+    get: arg => handleError(() => ipcRenderer.invoke('keychain.get', arg), () => arg),
+    delete: arg => handleError(() => ipcRenderer.invoke('keychain.delete', arg), () => arg),
+  },
   app: {
     onDeepLink: (callback) => {
       ipcRenderer.on('deep-link', (_event, url) => callback(url))

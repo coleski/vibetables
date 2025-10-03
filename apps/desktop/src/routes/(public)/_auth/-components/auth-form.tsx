@@ -19,6 +19,7 @@ import { authClient, bearerToken, codeChallenge, successAuthToast } from '~/lib/
 import { handleDeepLink } from '~/lib/deep-links'
 import { encrypt } from '~/lib/encryption'
 import { handleError } from '~/lib/error'
+import { clearDb } from '~/drizzle'
 
 type Type = 'sign-up' | 'sign-in'
 
@@ -225,6 +226,7 @@ export function AuthForm({ type }: { type: Type }) {
       return
     }
 
+    await clearDb()
     bearerToken.set(data.token)
     successAuthToast(type === 'sign-up')
   }

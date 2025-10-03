@@ -10,12 +10,18 @@ export const enhancePrompt = orpc
   .input(type({
     prompt: 'string',
     chatId: 'string.uuid.v7',
+    'userApiKey?': 'string',
   }))
   .handler(async ({ input, signal, context }) => {
     const messages = await getMessages(input.chatId)
 
+    // Use user's API key if provided (private mode), otherwise use server keys
+    const model = input.userApiKey
+      ? openai('gpt-4o-mini', { apiKey: input.userApiKey })
+      : openai('gpt-4o-mini')
+
     const { text } = await generateText({
-      model: withPosthog(openai('gpt-4o-mini'), {
+      model: withPosthog(model, {
         chatId: input.chatId,
         prompt: input.prompt,
         userId: context.user.id,

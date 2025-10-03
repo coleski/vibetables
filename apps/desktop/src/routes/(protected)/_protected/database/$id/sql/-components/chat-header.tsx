@@ -19,7 +19,10 @@ import { Link } from '@tanstack/react-router'
 import dayjs from 'dayjs'
 import { chatsCollection, chatsMessagesCollection } from '~/entities/chat'
 import { lastOpenedChatId } from '~/entities/database'
+import { AiProvider } from '~/drizzle'
+import { getUserApiKey } from '~/lib/ai-helper'
 import { orpc } from '~/lib/orpc'
+import { isPrivateMode } from '~/lib/private-mode'
 import { Route } from '..'
 
 type Group = 'today' | 'yesterday' | 'week' | 'month' | 'older'
@@ -85,9 +88,15 @@ export function ChatHeader({ chatId }: { chatId: string }) {
       return
     }
 
+    // Get user's API key if in private mode
+    const userApiKey = isPrivateMode()
+      ? await getUserApiKey(AiProvider.Google)
+      : undefined
+
     const title = await orpc.ai.generateTitle({
       chatId: chat.id,
       messages: messages as AppUIMessage[],
+      userApiKey,
     })
 
     chatsCollection.update(chat.id, (draft) => {
