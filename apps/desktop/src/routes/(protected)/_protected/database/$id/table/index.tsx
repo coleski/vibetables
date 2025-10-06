@@ -4,6 +4,7 @@ import type { storeState } from './-store'
 import { FILTER_OPERATORS_LIST } from '@conar/shared/utils/sql'
 import { title } from '@conar/shared/utils/title'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@conar/ui/components/resizable'
+import { useStore } from '@tanstack/react-store'
 import { createFileRoute } from '@tanstack/react-router'
 import { type } from 'arktype'
 import { useEffect } from 'react'
@@ -11,11 +12,12 @@ import { FiltersProvider } from '~/components/table'
 import { prefetchDatabaseCore, prefetchDatabaseTableCore, useLastOpenedTable } from '~/entities/database'
 import { Filters } from './-components/filters'
 import { Header } from './-components/header'
+import { QueryPane } from './-components/query-pane'
 import { Sidebar } from './-components/sidebar'
 import { Table } from './-components/table'
 import { TablesTabs } from './-components/tabs'
 import { useTableColumns } from './-queries/use-columns-query'
-import { createPageStore, PageStoreContext } from './-store'
+import { createPageStore, PageStoreContext, useQueryPaneOpen } from './-store'
 import { addTab } from './-tabs'
 
 export const Route = createFileRoute(
@@ -77,6 +79,7 @@ function TableContent({ table, schema, store }: { table: string, schema: string,
   const { database } = Route.useLoaderData()
 
   const columns = useTableColumns({ database, table, schema })
+  const queryPaneOpen = useQueryPaneOpen()
 
   useEffect(() => {
     if (!columns || columns.length === 0)
@@ -110,19 +113,35 @@ function TableContent({ table, schema, store }: { table: string, schema: string,
           columns={columns ?? []}
           operators={FILTER_OPERATORS_LIST}
         >
-          <div className="h-full flex flex-col justify-between">
-            <div className="flex flex-col gap-4 px-4 pt-2 pb-4">
-              <Header
-                database={database}
-                table={table}
-                schema={schema}
-              />
-              <Filters />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <Table table={table} schema={schema} />
-            </div>
-          </div>
+          <ResizablePanelGroup autoSaveId={`table-query-layout-${database.id}-${schema}-${table}`} direction="vertical" className="h-full">
+            <ResizablePanel minSize={30}>
+              <div className="h-full flex flex-col justify-between">
+                <div className="flex flex-col gap-4 px-4 pt-2 pb-4">
+                  <Header
+                    database={database}
+                    table={table}
+                    schema={schema}
+                  />
+                  <Filters />
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <Table table={table} schema={schema} />
+                </div>
+              </div>
+            </ResizablePanel>
+            {queryPaneOpen && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel minSize={15} defaultSize={25}>
+                  <QueryPane
+                    table={table}
+                    schema={schema}
+                    database={database}
+                  />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
         </FiltersProvider>
       </div>
     </PageStoreContext>

@@ -1,7 +1,7 @@
 import type { WhereFilter } from '@conar/shared/sql/where'
 import { Store } from '@tanstack/react-store'
 import { type } from 'arktype'
-import { createContext, use } from 'react'
+import { createContext, use, useEffect, useState } from 'react'
 
 export const storeState = type({
   selected: 'Record<string, string>[]',
@@ -57,4 +57,36 @@ export const PageStoreContext = createContext<Store<typeof storeState.infer>>(nu
 
 export function usePageStoreContext() {
   return use(PageStoreContext)
+}
+
+// Global query pane state
+const QUERY_PANE_STORAGE_KEY = 'table-query-pane-open'
+const QUERY_PANE_EVENT = 'query-pane-change'
+
+export function getQueryPaneOpen(): boolean {
+  const stored = localStorage.getItem(QUERY_PANE_STORAGE_KEY)
+  return stored === 'true'
+}
+
+export function setQueryPaneOpen(open: boolean): void {
+  localStorage.setItem(QUERY_PANE_STORAGE_KEY, String(open))
+  // Dispatch custom event to notify other components
+  window.dispatchEvent(new CustomEvent(QUERY_PANE_EVENT, { detail: open }))
+}
+
+// Custom hook to sync query pane state across components
+export function useQueryPaneOpen() {
+  const [isOpen, setIsOpen] = useState(getQueryPaneOpen())
+
+  useEffect(() => {
+    const handleChange = (e: Event) => {
+      const customEvent = e as CustomEvent<boolean>
+      setIsOpen(customEvent.detail)
+    }
+
+    window.addEventListener(QUERY_PANE_EVENT, handleChange)
+    return () => window.removeEventListener(QUERY_PANE_EVENT, handleChange)
+  }, [])
+
+  return isOpen
 }

@@ -15,5 +15,7 @@ export function formatSql(
   return format(query, {
     language: langMap[type],
     keywordCase: 'upper',
+    indentStyle: 'standard',
+    expressionWidth: 80,
   })
 }
