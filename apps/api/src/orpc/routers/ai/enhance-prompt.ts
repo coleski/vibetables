@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai'
+import { createOpenAI, openai } from '@ai-sdk/openai'
 import { generateText } from 'ai'
 import { type } from 'arktype'
 import { withPosthog } from '~/lib/posthog'
@@ -8,8 +8,8 @@ import { getMessages } from './ask'
 export const enhancePrompt = orpc
   .use(authMiddleware)
   .input(type({
-    prompt: 'string',
-    chatId: 'string.uuid.v7',
+    'prompt': 'string',
+    'chatId': 'string.uuid.v7',
     'userApiKey?': 'string',
   }))
   .handler(async ({ input, signal, context }) => {
@@ -17,7 +17,7 @@ export const enhancePrompt = orpc
 
     // Use user's API key if provided (private mode), otherwise use server keys
     const model = input.userApiKey
-      ? openai('gpt-4o-mini', { apiKey: input.userApiKey })
+      ? createOpenAI({ apiKey: input.userApiKey })('gpt-4o-mini')
       : openai('gpt-4o-mini')
 
     const { text } = await generateText({

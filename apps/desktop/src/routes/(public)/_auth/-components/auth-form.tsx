@@ -15,11 +15,11 @@ import { nanoid } from 'nanoid'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { clearDb } from '~/drizzle'
 import { authClient, bearerToken, codeChallenge, successAuthToast } from '~/lib/auth'
 import { handleDeepLink } from '~/lib/deep-links'
 import { encrypt } from '~/lib/encryption'
 import { handleError } from '~/lib/error'
-import { clearDb } from '~/drizzle'
 
 type Type = 'sign-up' | 'sign-in'
 

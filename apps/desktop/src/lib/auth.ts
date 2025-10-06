@@ -9,9 +9,7 @@ import {
 import { bearer } from 'better-auth/plugins'
 import { createAuthClient } from 'better-auth/react'
 import { toast } from 'sonner'
-import { clearDb } from '~/drizzle'
 import { identifyUser } from './events'
-import { isPrivateMode } from './private-mode'
 import { getApiUrl } from './utils'
 
 export const CODE_CHALLENGE_KEY = 'conar.code_challenge'

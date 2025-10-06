@@ -25,7 +25,7 @@ pnpm add -D @types/keytar
 **File:** `apps/desktop/src/drizzle/schema/api-keys.ts`
 
 ```typescript
-import { pgEnum, pgTable, text, boolean, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const aiProviders = pgEnum('ai_provider', [
   'anthropic',
@@ -206,13 +206,13 @@ Expected: All operations succeed without errors
 
 ```typescript
 import { anthropic } from '@ai-sdk/anthropic'
-import { openai } from '@ai-sdk/openai'
 import { google } from '@ai-sdk/google'
+import { openai } from '@ai-sdk/openai'
 import { xai } from '@ai-sdk/xai'
+import { eq } from 'drizzle-orm'
+import { apiKeys, db } from '~/drizzle'
 import { keychain } from './keychain'
 import { isPrivateMode } from './private-mode'
-import { db, apiKeys } from '~/drizzle'
-import { eq } from 'drizzle-orm'
 
 export type AiProvider = 'anthropic' | 'openai' | 'google' | 'xai'
 
@@ -268,7 +268,8 @@ export async function getLocalAiModel(provider: AiProvider = 'anthropic') {
  * Check if local AI is available (private mode + has keys)
  */
 export async function hasLocalAiKey(provider: AiProvider = 'anthropic'): Promise<boolean> {
-  if (!isPrivateMode()) return false
+  if (!isPrivateMode())
+    return false
 
   try {
     const activeKey = await db
@@ -279,11 +280,13 @@ export async function hasLocalAiKey(provider: AiProvider = 'anthropic'): Promise
       .limit(1)
       .then(rows => rows[0])
 
-    if (!activeKey) return false
+    if (!activeKey)
+      return false
 
     const apiKey = await keychain.get(activeKey.id)
     return !!apiKey
-  } catch {
+  }
+  catch {
     return false
   }
 }
@@ -632,7 +635,8 @@ import { getLocalAiModel, hasLocalAiKey } from '~/lib/ai-helper'
 
 // In the useAsyncEffect:
 useAsyncEffect(async () => {
-  if (!shouldGenerateTitle) return
+  if (!shouldGenerateTitle)
+    return
 
   const hasLocalKey = await hasLocalAiKey('anthropic')
 
@@ -655,7 +659,8 @@ useAsyncEffect(async () => {
       ],
     })
     title = result.text
-  } else {
+  }
+  else {
     // Use cloud API
     title = await orpc.ai.generateTitle({
       chatId: chat.id,

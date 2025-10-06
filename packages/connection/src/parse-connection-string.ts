@@ -53,7 +53,8 @@ function parseADOConnectionString(connectionString: string): Config {
 
   for (const pair of pairs) {
     const [key, ...valueParts] = pair.split('=')
-    if (!key) continue
+    if (!key)
+      continue
     const value = valueParts.join('=').trim() // Rejoin in case value contains '='
     const normalizedKey = key.trim().toLowerCase()
 
@@ -92,7 +93,8 @@ function parseADOConnectionString(connectionString: string): Config {
         const normalizedValue = value.toLowerCase()
         if (normalizedValue === 'true' || normalizedValue === '1' || normalizedValue === 'yes') {
           config.ssl = true
-        } else if (normalizedValue === 'false' || normalizedValue === '0' || normalizedValue === 'no') {
+        }
+        else if (normalizedValue === 'false' || normalizedValue === '0' || normalizedValue === 'no') {
           config.ssl = false
         }
         break

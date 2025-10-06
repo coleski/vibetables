@@ -111,7 +111,8 @@ function Visualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes)
 
   const recalculateLayout = useCallback(() => {
-    if (columnsLoading || columns.length === 0) return
+    if (columnsLoading || columns.length === 0)
+      return
     const edges = getEdges({ foreignKeys })
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       getNodes({
@@ -151,7 +152,12 @@ function Visualizer() {
         <div className="text-center">
           <div className="text-lg font-medium">{loadingProgress.stage}</div>
           <div className="text-sm text-muted-foreground">
-            {loadingProgress.current} / {loadingProgress.total} tables
+            {loadingProgress.current}
+            {' '}
+            /
+            {loadingProgress.total}
+            {' '}
+            tables
           </div>
           <div className="w-64 h-2 bg-muted rounded-full mt-2 overflow-hidden">
             <div
@@ -170,7 +176,10 @@ function Visualizer() {
         <div className="absolute z-20 top-2 left-2 bg-background/95 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg">
           <div className="text-xs font-medium">{loadingProgress.stage}</div>
           <div className="text-xs text-muted-foreground">
-            {loadingProgress.current} / {loadingProgress.total}
+            {loadingProgress.current}
+            {' '}
+            /
+            {loadingProgress.total}
           </div>
         </div>
       )}

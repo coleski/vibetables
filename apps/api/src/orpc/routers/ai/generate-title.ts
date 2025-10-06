@@ -1,5 +1,5 @@
 import type { AppUIMessage } from '@conar/shared/ai-tools'
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI, google } from '@ai-sdk/google'
 import { generateText } from 'ai'
 import { type } from 'arktype'
 import { eq } from 'drizzle-orm'
@@ -10,8 +10,8 @@ import { authMiddleware, orpc } from '~/orpc'
 export const generateTitle = orpc
   .use(authMiddleware)
   .input(type({
-    chatId: 'string.uuid.v7',
-    messages: 'Array' as type.cast<AppUIMessage[]>,
+    'chatId': 'string.uuid.v7',
+    'messages': 'Array' as type.cast<AppUIMessage[]>,
     'userApiKey?': 'string',
   }))
   .handler(async ({ input, signal, context }) => {
@@ -22,7 +22,7 @@ export const generateTitle = orpc
 
     // Use user's API key if provided (private mode), otherwise use server keys
     const model = input.userApiKey
-      ? google('gemini-2.0-flash', { apiKey: input.userApiKey })
+      ? createGoogleGenerativeAI({ apiKey: input.userApiKey })('gemini-2.0-flash')
       : google('gemini-2.0-flash')
 
     const { text } = await generateText({

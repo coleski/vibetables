@@ -7,8 +7,8 @@ import { useIsMutating, useMutation } from '@tanstack/react-query'
 import { drizzleCollectionOptions } from 'tanstack-db-pglite'
 import { databases, db, waitForMigrations } from '~/drizzle'
 import { bearerToken } from '~/lib/auth'
-import { isPrivateMode } from '~/lib/private-mode'
 import { orpc } from '~/lib/orpc'
+import { isPrivateMode } from '~/lib/private-mode'
 import { router } from '~/main'
 
 const { promise, resolve } = Promise.withResolvers()

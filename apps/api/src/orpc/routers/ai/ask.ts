@@ -1,6 +1,6 @@
 import type { AppUIMessage } from '@conar/shared/ai-tools'
 import type { LanguageModel } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
+import { anthropic, createAnthropic } from '@ai-sdk/anthropic'
 import { google } from '@ai-sdk/google'
 import { convertToAppUIMessage, tools } from '@conar/shared/ai-tools'
 import { DatabaseType } from '@conar/shared/enums/database-type'
@@ -57,7 +57,7 @@ function generateStream({
   signal,
   chatId,
   userId,
-  userApiKey,
+  userApiKey: _userApiKey,
 }: {
   messages: AppUIMessage[]
   type: typeof chatInputType.infer['type']
@@ -204,11 +204,11 @@ export const ask = orpc
       // Use user's API key if provided (private mode), otherwise use server keys
       const model = input.userApiKey
         ? (input.fallback
-            ? anthropic('claude-opus-4-1', { apiKey: input.userApiKey })
+            ? createAnthropic({ apiKey: input.userApiKey })('claude-opus-4-1')
             : createRetryable({
-                model: anthropic('claude-sonnet-4-5', { apiKey: input.userApiKey }),
+                model: createAnthropic({ apiKey: input.userApiKey })('claude-sonnet-4-5'),
                 retries: [
-                  anthropic('claude-opus-4-1', { apiKey: input.userApiKey }),
+                  createAnthropic({ apiKey: input.userApiKey })('claude-opus-4-1'),
                 ],
               }))
         : (input.fallback ? fallbackModel : mainModel)

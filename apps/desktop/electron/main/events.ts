@@ -5,8 +5,8 @@ import { DatabaseType } from '@conar/shared/enums/database-type'
 import { app, ipcMain } from 'electron'
 import Store from 'electron-store'
 import { mssqlQuery, mssqlTestConnection } from './mssql'
-import { pgQuery, pgTestConnection } from './pg'
 import { mysqlQuery, mysqlTestConnection } from './mysql'
+import { pgQuery, pgTestConnection } from './pg'
 
 const { autoUpdater } = createRequire(import.meta.url)('electron-updater') as typeof import('electron-updater')
 
@@ -31,12 +31,17 @@ const databases = {
   }) => {
     const queryMap = {
       [DatabaseType.Postgres]: pgTestConnection,
+      postgres: pgTestConnection,
+      postgresql: pgTestConnection,
       [DatabaseType.MySQL]: mysqlTestConnection,
+      mysql: mysqlTestConnection,
       [DatabaseType.MSSQL]: mssqlTestConnection,
+      mssql: mssqlTestConnection,
+      sqlserver: mssqlTestConnection, // Legacy support
     }
 
     try {
-      return await queryMap[type]({ connectionString })
+      return await queryMap[type as keyof typeof queryMap]({ connectionString })
     }
     catch (error) {
       if (error instanceof AggregateError) {
@@ -59,12 +64,17 @@ const databases = {
   }) => {
     const queryMap = {
       [DatabaseType.Postgres]: pgQuery,
+      postgres: pgQuery,
+      postgresql: pgQuery,
       [DatabaseType.MySQL]: mysqlQuery,
+      mysql: mysqlQuery,
       [DatabaseType.MSSQL]: mssqlQuery,
+      mssql: mssqlQuery,
+      sqlserver: mssqlQuery, // Legacy support
     }
 
     try {
-      return await queryMap[type]({ connectionString, query, values }) satisfies DatabaseQueryResult[]
+      return await queryMap[type as keyof typeof queryMap]({ connectionString, query, values }) satisfies DatabaseQueryResult[]
     }
     catch (error) {
       if (error instanceof AggregateError) {

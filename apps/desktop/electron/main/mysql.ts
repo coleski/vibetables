@@ -29,19 +29,21 @@ export async function mysqlQuery({
     const [rows, fields] = await connection.execute(query, values) as [RowDataPacket[], FieldPacket[]]
 
     // Convert MySQL's 1/0 to boolean for TINYINT(1) columns
-    const processedRows = Array.isArray(rows) ? rows.map(row => {
-      const processed = { ...row }
-      for (const key in processed) {
-        const value = processed[key]
-        if (value === 1 || value === 0) {
-          const field = fields.find(f => f.name === key)
-          if (field && field.columnLength === 1) {
-            processed[key] = value === 1
+    const processedRows = Array.isArray(rows)
+      ? rows.map((row) => {
+          const processed = { ...row }
+          for (const key in processed) {
+            const value = processed[key]
+            if (value === 1 || value === 0) {
+              const field = fields.find(f => f.name === key)
+              if (field && field.columnLength === 1) {
+                processed[key] = value === 1
+              }
+            }
           }
-        }
-      }
-      return processed
-    }) : []
+          return processed
+        })
+      : []
 
     return [{
       count: processedRows.length,

@@ -19,14 +19,15 @@ function maskConnectionString(connectionString: string, hasPassword: boolean): s
   // Check if ADO.NET format (no ://)
   if (!connectionString.includes('://') && connectionString.includes(';')) {
     const config = parseConnectionString(connectionString)
-    if (!hasPassword && !config.password) return connectionString
+    if (!hasPassword && !config.password)
+      return connectionString
 
     const passwordLength = config.password?.length || 6
     const maskedPassword = '*'.repeat(passwordLength)
 
     return connectionString.replace(
       /password=[^;]*/i,
-      `password=${maskedPassword}`
+      `password=${maskedPassword}`,
     )
   }
 

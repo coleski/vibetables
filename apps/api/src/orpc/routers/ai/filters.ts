@@ -1,4 +1,4 @@
-import { anthropic } from '@ai-sdk/anthropic'
+import { createAnthropic } from '@ai-sdk/anthropic'
 import { google } from '@ai-sdk/google'
 import { SQL_OPERATORS_LIST } from '@conar/shared/utils/sql'
 import { generateObject } from 'ai'
@@ -10,8 +10,8 @@ import { authMiddleware, orpc } from '~/orpc'
 export const filters = orpc
   .use(authMiddleware)
   .input(type({
-    prompt: 'string',
-    context: 'string',
+    'prompt': 'string',
+    'context': 'string',
     'userApiKey?': 'string',
   }))
   .handler(async ({ input, signal, context }) => {
@@ -19,15 +19,17 @@ export const filters = orpc
 
     // Use user's API key if provided (private mode), otherwise use server keys
     const model = input.userApiKey
-      ? anthropic('claude-sonnet-4-5', { apiKey: input.userApiKey })
+      ? createAnthropic({ apiKey: input.userApiKey })('claude-sonnet-4-5')
       : google('gemini-2.0-flash')
 
     const { object } = await generateObject({
-      model: input.userApiKey ? model : withPosthog(model, {
-        prompt: input.prompt,
-        context: input.context,
-        userId: context.user.id,
-      }),
+      model: input.userApiKey
+        ? model
+        : withPosthog(model, {
+            prompt: input.prompt,
+            context: input.context,
+            userId: context.user.id,
+          }),
       system: [
         'You are a filters and ordering generator that converts natural language queries into database filters and ordering instructions.',
         'You should understand the sense of the prompt as much as possible.',

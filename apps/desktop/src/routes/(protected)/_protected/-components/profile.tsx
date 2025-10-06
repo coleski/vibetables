@@ -3,9 +3,9 @@ import { LoadingContent } from '@conar/ui/components/custom/loading-content'
 import { Skeleton } from '@conar/ui/components/skeleton'
 import { cn } from '@conar/ui/lib/utils'
 import { RiLogoutBoxLine, RiShieldCheckLine } from '@remixicon/react'
+import { useRouter } from '@tanstack/react-router'
 import { UserAvatar, useSignOut } from '~/entities/user'
 import { disablePrivateMode, isPrivateMode } from '~/lib/private-mode'
-import { useRouter } from '@tanstack/react-router'
 
 export function Profile({ className }: { className?: string }) {
   const { data, signOut, isSigningOut } = useSignOut()

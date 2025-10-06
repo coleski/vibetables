@@ -5,8 +5,8 @@ import { drizzleCollectionOptions } from 'tanstack-db-pglite'
 import { chats, chatsMessages, db, waitForMigrations } from '~/drizzle'
 import { waitForDatabasesSync } from '~/entities/database'
 import { bearerToken } from '~/lib/auth'
-import { isPrivateMode } from '~/lib/private-mode'
 import { orpc } from '~/lib/orpc'
+import { isPrivateMode } from '~/lib/private-mode'
 
 const { promise, resolve } = Promise.withResolvers()
 

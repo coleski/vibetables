@@ -1,7 +1,7 @@
 import { toast } from 'sonner'
+import { clearDb } from '~/drizzle'
 import { bearerToken, codeChallenge, successAuthToast } from '~/lib/auth'
 import { decrypt } from './encryption'
-import { clearDb } from '~/drizzle'
 
 export async function handleDeepLink(url: string): Promise<{ type: 'session' | 'unknown' }> {
   const { pathname, searchParams } = new URL(url.replace('conar://', 'https://conar.app/'))

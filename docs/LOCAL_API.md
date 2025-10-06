@@ -234,7 +234,7 @@ const response = await fetch('http://localhost:3999/api/connections', {
     port: 5432,
     name: 'Dev Database'
   })
-});
+})
 ```
 
 Or via Bash tool:
