@@ -6,13 +6,13 @@ import { Button } from '@conar/ui/components/button'
 import { CardHeader, CardTitle } from '@conar/ui/components/card'
 import { CtrlEnter } from '@conar/ui/components/custom/ctrl-enter'
 import { useStore } from '@tanstack/react-store'
-import { RiCheckLine, RiLoader4Line } from '@remixicon/react'
+import { RiCheckLine, RiCloseLine, RiLoader4Line } from '@remixicon/react'
 import { LanguageIdEnum } from 'monaco-sql-languages'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Monaco } from '~/components/monaco'
 import { DEFAULT_LIMIT, useDatabaseTableTotal } from '~/entities/database'
 import { formatSql } from '~/lib/formatter'
-import { usePageStoreContext } from '../-store'
+import { setQueryPaneOpen, usePageStoreContext } from '../-store'
 
 export function QueryPane({ table, schema, database }: { table: string, schema: string, database: typeof databases.$inferSelect }) {
   const store = usePageStoreContext()
@@ -96,16 +96,16 @@ export function QueryPane({ table, schema, database }: { table: string, schema: 
 
   return (
     <div className="flex flex-col h-full">
-      <CardHeader className="bg-card py-3 h-14 border-b">
-        <CardTitle className="flex items-center gap-2 justify-between text-sm">
-          <span>Table Query</span>
+      <CardHeader className="bg-card min-h-[3rem] border-b flex items-center px-4 py-2">
+        <CardTitle className="flex items-center gap-2 justify-between text-sm w-full my-0">
+          <span className="leading-none">Table Query</span>
           <div className="flex items-center gap-2">
             {isEdited && (
               <Button
                 size="sm"
                 onClick={handleRunQuery}
                 disabled={isRunning}
-                className={justRan ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                className={`h-7 ${justRan ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
               >
                 <span className="flex items-center gap-1">
                   {isRunning && <RiLoader4Line className="size-3 animate-spin" />}
@@ -125,6 +125,14 @@ export function QueryPane({ table, schema, database }: { table: string, schema: 
                 Showing first {DEFAULT_LIMIT} of {total} record{total !== 1 ? 's' : ''}
               </span>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 shrink-0"
+              onClick={() => setQueryPaneOpen(false)}
+            >
+              <RiCloseLine className="size-3.5" />
+            </Button>
           </div>
         </CardTitle>
       </CardHeader>
