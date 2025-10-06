@@ -1,13 +1,16 @@
 import type { DatabaseType } from '@conar/shared/enums/database-type'
+import type { databases } from '~/drizzle'
 import posthog from 'posthog-js'
 import { databasesCollection } from '~/entities/database'
 import { orpc } from './orpc'
 
-export function dbQuery(databaseId: string, params: {
+export function dbQuery(databaseOrId: string | typeof databases.$inferSelect, params: {
   query: string
   values?: unknown[]
 }) {
-  const database = databasesCollection.get(databaseId)
+  const database = typeof databaseOrId === 'string'
+    ? databasesCollection.get(databaseOrId)
+    : databaseOrId
 
   if (!database) {
     throw new Error('Database not found')
@@ -49,11 +52,23 @@ export function dbTestConnection(params: {
   type: DatabaseType
   connectionString: string
 }) {
+  console.log('dbTestConnection called', { hasElectron: !!window.electron, params })
+
   if (!window.electron) {
+    console.log('Using API route (no window.electron)')
     return orpc.proxy.databases[params.type].test({
       connectionString: params.connectionString,
     })
   }
 
+  console.log('Using Electron IPC')
   return window.electron.databases.test(params)
+    .then((result) => {
+      console.log('Test connection result:', result)
+      return result
+    })
+    .catch((error) => {
+      console.error('Test connection error:', error)
+      throw error
+    })
 }

@@ -12,6 +12,7 @@ import { useLiveQuery } from '@tanstack/react-db'
 import { Link } from '@tanstack/react-router'
 import { useMemo, useRef } from 'react'
 import { DatabaseIcon, databasesCollection, useDatabaseLinkParams } from '~/entities/database'
+import { EditConnectionDialog } from './edit-connection-dialog'
 import { RemoveConnectionDialog } from './remove-connection-dialog'
 import { RenameConnectionDialog } from './rename-connection-dialog'
 
@@ -39,7 +40,7 @@ function maskConnectionString(connectionString: string, hasPassword: boolean): s
   return url.toString()
 }
 
-function DatabaseCard({ database, onRemove, onRename }: { database: typeof databases.$inferSelect, onRemove: () => void, onRename: () => void }) {
+function DatabaseCard({ database, onRemove, onRename, onEdit }: { database: typeof databases.$inferSelect, onRemove: () => void, onRename: () => void, onEdit: () => void }) {
   const connectionString = useMemo(() => {
     return maskConnectionString(database.connectionString, database.isPasswordExists)
   }, [database.connectionString, database.isPasswordExists])
@@ -79,6 +80,15 @@ function DatabaseCard({ database, onRemove, onRename }: { database: typeof datab
           >
             <RiFileCopyLine className="size-4 opacity-50" />
             Copy Connection String
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+          >
+            <RiEditLine className="size-4 opacity-50" />
+            Edit
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={(e) => {
@@ -141,11 +151,13 @@ export function DatabasesList() {
     .orderBy(({ databases }) => databases.createdAt, 'desc'))
   const renameDialogRef = useRef<ComponentRef<typeof RenameConnectionDialog>>(null)
   const removeDialogRef = useRef<ComponentRef<typeof RemoveConnectionDialog>>(null)
+  const editDialogRef = useRef<ComponentRef<typeof EditConnectionDialog>>(null)
 
   return (
     <div className="flex flex-col gap-6">
       <RemoveConnectionDialog ref={removeDialogRef} />
       <RenameConnectionDialog ref={renameDialogRef} />
+      <EditConnectionDialog ref={editDialogRef} />
       <div className="flex flex-col gap-2">
         {!databases
           ? (
@@ -165,6 +177,9 @@ export function DatabasesList() {
                   }}
                   onRename={() => {
                     renameDialogRef.current?.rename(database)
+                  }}
+                  onEdit={() => {
+                    editDialogRef.current?.edit(database)
                   }}
                 />
               ))

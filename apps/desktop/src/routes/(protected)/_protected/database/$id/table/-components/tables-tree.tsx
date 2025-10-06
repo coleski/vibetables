@@ -10,7 +10,6 @@ import { copy as copyToClipboard } from '@conar/ui/lib/copy'
 import { cn } from '@conar/ui/lib/utils'
 import { RiDeleteBin7Line, RiEditLine, RiFileCopyLine, RiMoreLine, RiStackLine, RiTableLine } from '@remixicon/react'
 import { Link, useSearch } from '@tanstack/react-router'
-import { AnimatePresence, motion } from 'motion/react'
 import { useMemo, useRef } from 'react'
 import { useDatabaseTablesAndSchemas } from '~/entities/database'
 import { addTab } from '../-tabs'
@@ -88,15 +87,9 @@ export function TablesTree({ database, className, search }: { database: typeof d
                 </div>
               )
             : (
-                <AnimatePresence>
+                <>
                   {filteredTablesAndSchemas.map(schema => (
-                    <motion.div
-                      key={schema.name}
-                      initial={search ? { opacity: 0, height: 0 } : false}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
+                    <div key={schema.name}>
                       <AccordionItem
                         value={schema.name}
                         className="border-b-0"
@@ -122,15 +115,9 @@ export function TablesTree({ database, className, search }: { database: typeof d
                           </span>
                         </AccordionTrigger>
                         <AccordionContent className="pb-0">
-                          <AnimatePresence>
+                          <>
                             {schema.tables.map(table => (
-                              <motion.div
-                                key={table}
-                                initial={search ? { opacity: 0, height: 0 } : false}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                transition={{ duration: 0.2 }}
-                              >
+                              <div key={table}>
                                 <Link
                                   to="/database/$id/table"
                                   params={{ id: database.id }}
@@ -211,14 +198,14 @@ export function TablesTree({ database, className, search }: { database: typeof d
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </Link>
-                              </motion.div>
+                              </div>
                             ))}
-                          </AnimatePresence>
+                          </>
                         </AccordionContent>
                       </AccordionItem>
-                    </motion.div>
+                    </div>
                   ))}
-                </AnimatePresence>
+                </>
               )}
       </Accordion>
     </ScrollArea>

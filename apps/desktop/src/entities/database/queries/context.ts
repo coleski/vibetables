@@ -7,7 +7,7 @@ export function tablesAndSchemasQuery({ database }: { database: typeof databases
   return queryOptions({
     queryKey: ['database', database.id, 'tables-and-schemas'],
     queryFn: async () => {
-      const [result] = await dbQuery(database.id, {
+      const [result] = await dbQuery(database, {
         query: tablesAndSchemasSql()[database.type],
       })
 

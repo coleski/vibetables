@@ -10,8 +10,17 @@ const sql = createRequire(import.meta.url)('mssql') as typeof import('mssql')
 const poolCache = new Map<string, Promise<typeof sql.ConnectionPool.prototype>>()
 
 async function getPool(connectionString: string) {
+  console.log('[MSSQL] getPool called, cache has:', poolCache.size, 'entries')
+  console.log('[MSSQL] Cache has this connection?', poolCache.has(connectionString))
+
   if (!poolCache.has(connectionString)) {
     const config = parseConnectionString(connectionString)
+    console.log('[MSSQL] Creating new pool with config:', {
+      server: config.host,
+      port: config.port,
+      user: config.user,
+      database: config.database,
+    })
 
     const poolPromise = sql.connect({
       server: config.host ?? 'localhost',
@@ -36,9 +45,13 @@ async function getPool(connectionString: string) {
     poolCache.set(connectionString, poolPromise)
 
     // Remove from cache on error
-    poolPromise.catch(() => {
+    poolPromise.catch((err) => {
+      console.log('[MSSQL] Pool connection failed, removing from cache:', err.message)
       poolCache.delete(connectionString)
     })
+  }
+  else {
+    console.log('[MSSQL] Using cached pool')
   }
 
   return poolCache.get(connectionString)!
@@ -78,8 +91,33 @@ export async function mssqlQuery({
 }
 
 export async function mssqlTestConnection({ connectionString }: { connectionString: string }) {
-  const pool = await getPool(connectionString)
-  // Simple query to test the connection
-  await pool.request().query('SELECT 1')
-  return true
+  console.log('[MSSQL] Testing connection:', connectionString)
+
+  // For test connections, always clear the cache to ensure we're testing fresh
+  if (poolCache.has(connectionString)) {
+    console.log('[MSSQL] Clearing cached connection for test')
+    const cachedPool = await poolCache.get(connectionString)!.catch(() => null)
+    if (cachedPool) {
+      await cachedPool.close().catch(() => {})
+    }
+    poolCache.delete(connectionString)
+  }
+
+  try {
+    const pool = await getPool(connectionString)
+    // Simple query to test the connection
+    await pool.request().query('SELECT 1')
+    console.log('[MSSQL] Connection test succeeded')
+
+    // Clear the pool after successful test - don't keep test connections
+    await pool.close().catch(() => {})
+    poolCache.delete(connectionString)
+
+    return true
+  }
+  catch (error) {
+    console.error('[MSSQL] Connection test failed:', error)
+    poolCache.delete(connectionString)
+    throw error
+  }
 }

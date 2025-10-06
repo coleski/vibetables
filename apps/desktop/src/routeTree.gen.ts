@@ -26,8 +26,13 @@ import { Route as protectedProtectedDatabaseIdTableIndexRouteImport } from './ro
 import { Route as protectedProtectedDatabaseIdSqlIndexRouteImport } from './routes/(protected)/_protected/database/$id/sql/index'
 import { Route as protectedProtectedDatabaseIdEnumsIndexRouteImport } from './routes/(protected)/_protected/database/$id/enums/index'
 
+const publicRouteImport = createFileRoute('/(public)')()
 const protectedRouteImport = createFileRoute('/(protected)')()
 
+const publicRoute = publicRouteImport.update({
+  id: '/(public)',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const protectedRoute = protectedRouteImport.update({
   id: '/(protected)',
   getParentRoute: () => rootRouteImport,
@@ -124,11 +129,11 @@ export interface FileRoutesByFullPath {
   '/database/$id/visualizer': typeof protectedProtectedDatabaseIdVisualizerIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof protectedProtectedIndexRoute
   '/create': typeof protectedProtectedCreateRoute
   '/sign-in': typeof publicAuthSignInRoute
   '/sign-up': typeof publicAuthSignUpRoute
   '/two-factor': typeof publicAuthTwoFactorRouteWithChildren
-  '/': typeof protectedProtectedIndexRoute
   '/database/$id': typeof protectedProtectedDatabaseIdRouteWithChildren
   '/two-factor/setup': typeof publicAuthTwoFactorSetupRoute
   '/settings': typeof protectedProtectedSettingsIndexRoute
@@ -141,6 +146,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(protected)': typeof protectedRouteWithChildren
   '/(protected)/_protected': typeof protectedProtectedRouteWithChildren
+  '/(public)': typeof publicRouteWithChildren
   '/(public)/_auth': typeof publicAuthRouteWithChildren
   '/(protected)/_protected/create': typeof protectedProtectedCreateRoute
   '/(public)/_auth/sign-in': typeof publicAuthSignInRoute
@@ -172,11 +178,11 @@ export interface FileRouteTypes {
     | '/database/$id/visualizer'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/create'
     | '/sign-in'
     | '/sign-up'
     | '/two-factor'
-    | '/'
     | '/database/$id'
     | '/two-factor/setup'
     | '/settings'
@@ -188,6 +194,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/(protected)'
     | '/(protected)/_protected'
+    | '/(public)'
     | '/(public)/_auth'
     | '/(protected)/_protected/create'
     | '/(public)/_auth/sign-in'
@@ -205,10 +212,18 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   protectedRoute: typeof protectedRouteWithChildren
+  publicRoute: typeof publicRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/(public)': {
+      id: '/(public)'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof publicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(protected)': {
       id: '/(protected)'
       path: '/'
@@ -218,8 +233,8 @@ declare module '@tanstack/react-router' {
     }
     '/(public)/_auth': {
       id: '/(public)/_auth'
-      path: ''
-      fullPath: ''
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof publicAuthRouteImport
       parentRoute: typeof publicRoute
     }
@@ -371,8 +386,47 @@ const protectedRouteWithChildren = protectedRoute._addFileChildren(
   protectedRouteChildren,
 )
 
+interface publicAuthTwoFactorRouteChildren {
+  publicAuthTwoFactorSetupRoute: typeof publicAuthTwoFactorSetupRoute
+}
+
+const publicAuthTwoFactorRouteChildren: publicAuthTwoFactorRouteChildren = {
+  publicAuthTwoFactorSetupRoute: publicAuthTwoFactorSetupRoute,
+}
+
+const publicAuthTwoFactorRouteWithChildren =
+  publicAuthTwoFactorRoute._addFileChildren(publicAuthTwoFactorRouteChildren)
+
+interface publicAuthRouteChildren {
+  publicAuthSignInRoute: typeof publicAuthSignInRoute
+  publicAuthSignUpRoute: typeof publicAuthSignUpRoute
+  publicAuthTwoFactorRoute: typeof publicAuthTwoFactorRouteWithChildren
+}
+
+const publicAuthRouteChildren: publicAuthRouteChildren = {
+  publicAuthSignInRoute: publicAuthSignInRoute,
+  publicAuthSignUpRoute: publicAuthSignUpRoute,
+  publicAuthTwoFactorRoute: publicAuthTwoFactorRouteWithChildren,
+}
+
+const publicAuthRouteWithChildren = publicAuthRoute._addFileChildren(
+  publicAuthRouteChildren,
+)
+
+interface publicRouteChildren {
+  publicAuthRoute: typeof publicAuthRouteWithChildren
+}
+
+const publicRouteChildren: publicRouteChildren = {
+  publicAuthRoute: publicAuthRouteWithChildren,
+}
+
+const publicRouteWithChildren =
+  publicRoute._addFileChildren(publicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   protectedRoute: protectedRouteWithChildren,
+  publicRoute: publicRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

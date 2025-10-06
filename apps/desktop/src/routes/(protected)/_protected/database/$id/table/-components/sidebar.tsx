@@ -5,8 +5,10 @@ import { ContentSwitch } from '@conar/ui/components/custom/content-switch'
 import { LoadingContent } from '@conar/ui/components/custom/loading-content'
 import { Input } from '@conar/ui/components/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@conar/ui/components/tooltip'
+import { useDebouncedCallback } from '@conar/ui/hookas/use-debounced-callback'
 import { useSessionStorage } from '@conar/ui/hookas/use-session-storage'
 import { RiCheckLine, RiCloseLine, RiLoopLeftLine } from '@remixicon/react'
+import { useEffect, useState } from 'react'
 import { useDatabaseTablesAndSchemas } from '~/entities/database'
 import { databaseForeignKeysQuery } from '~/entities/database/queries/foreign-keys'
 import { queryClient } from '~/main'
@@ -14,7 +16,24 @@ import { TablesTree } from './tables-tree'
 
 export function Sidebar({ database }: { database: typeof databases.$inferSelect }) {
   const { data: tablesAndSchemas, refetch: refetchTablesAndSchemas, isFetching: isRefreshingTablesAndSchemas, dataUpdatedAt } = useDatabaseTablesAndSchemas({ database })
-  const [search, setSearch] = useSessionStorage(`database-tables-search-${database.id}`, '')
+  const [storedSearch, setStoredSearch] = useSessionStorage(`database-tables-search-${database.id}`, '')
+  const [inputValue, setInputValue] = useState(storedSearch)
+  const [debouncedSearch, setDebouncedSearch] = useState(storedSearch)
+
+  const debouncedSetSearch = useDebouncedCallback((value: string) => {
+    setDebouncedSearch(value)
+    setStoredSearch(value)
+  }, [], 150)
+
+  function handleSearchChange(value: string) {
+    setInputValue(value)
+    debouncedSetSearch(value)
+  }
+
+  useEffect(() => {
+    setInputValue(storedSearch)
+    setDebouncedSearch(storedSearch)
+  }, [storedSearch])
 
   async function handleRefresh() {
     await Promise.all([
@@ -62,14 +81,14 @@ export function Sidebar({ database }: { database: typeof databases.$inferSelect 
             <Input
               placeholder="Search tables"
               className="pr-8"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={inputValue}
+              onChange={e => handleSearchChange(e.target.value)}
             />
-            {search && (
+            {inputValue && (
               <button
                 type="button"
                 className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer p-1"
-                onClick={() => setSearch('')}
+                onClick={() => handleSearchChange('')}
               >
                 <RiCloseLine className="size-4 text-muted-foreground" />
               </button>
@@ -80,7 +99,7 @@ export function Sidebar({ database }: { database: typeof databases.$inferSelect 
       <TablesTree
         className="flex-1"
         database={database}
-        search={search}
+        search={debouncedSearch}
       />
     </>
   )

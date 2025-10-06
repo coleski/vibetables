@@ -38,7 +38,7 @@ export function databaseRowsQuery({
       },
     ],
     queryFn: async ({ pageParam: offset = 0 }) => {
-      const [result] = await dbQuery(database.id, {
+      const [result] = await dbQuery(database, {
         query: rowsSql(schema, table, {
           limit: DEFAULT_LIMIT,
           offset,

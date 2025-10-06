@@ -30,7 +30,7 @@ export function databaseTableTotalQuery({
       },
     ],
     queryFn: async () => {
-      const [result] = await dbQuery(database.id, {
+      const [result] = await dbQuery(database, {
         query: totalSql(schema, table, {
           where: whereSql(query.filters)[database.type],
         })[database.type],

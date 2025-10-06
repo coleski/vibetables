@@ -7,7 +7,7 @@ export function databaseForeignKeysQuery({ database }: { database: typeof databa
   return queryOptions({
     queryKey: ['database', database.id, 'foreign-keys'],
     queryFn: async () => {
-      const [result] = await dbQuery(database.id, {
+      const [result] = await dbQuery(database, {
         query: foreignKeysSql()[database.type],
       })
 

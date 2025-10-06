@@ -166,3 +166,58 @@ export function parseSSLConfig(searchParams: URLSearchParams): Config['ssl'] {
     return false
   }
 }
+
+export function buildConnectionString(config: Config, protocol: string = 'postgresql'): string {
+  // Decode first in case values are already encoded, then encode to avoid double-encoding
+  const userPass = config.user
+    ? config.password
+      ? `${encodeURIComponent(decodeURIComponent(config.user))}:${encodeURIComponent(decodeURIComponent(config.password))}`
+      : encodeURIComponent(decodeURIComponent(config.user))
+    : ''
+
+  const hostPort = config.host
+    ? config.port
+      ? `${config.host}:${config.port}`
+      : config.host
+    : 'localhost'
+
+  const database = config.database || ''
+
+  let connectionString = `${protocol}://${userPass}${userPass ? '@' : ''}${hostPort}/${database}`
+
+  // Add SSL parameters if they exist
+  if (config.ssl !== undefined && config.ssl !== null) {
+    const params = new URLSearchParams()
+
+    if (typeof config.ssl === 'boolean') {
+      params.set('ssl', config.ssl ? 'true' : 'false')
+    }
+    else {
+      if (config.ssl.rejectUnauthorized === false) {
+        params.set('sslmode', 'no-verify')
+      }
+      if (config.ssl.cert) {
+        params.set('sslcert', config.ssl.cert)
+      }
+      if (config.ssl.key) {
+        params.set('sslkey', config.ssl.key)
+      }
+      if (config.ssl.ca) {
+        params.set('sslrootcert', config.ssl.ca)
+      }
+      if (config.ssl.passphrase) {
+        params.set('sslpassword', config.ssl.passphrase)
+      }
+      if (config.ssl.servername) {
+        params.set('sslservername', config.ssl.servername)
+      }
+    }
+
+    const queryString = params.toString()
+    if (queryString) {
+      connectionString += `?${queryString}`
+    }
+  }
+
+  return connectionString
+}

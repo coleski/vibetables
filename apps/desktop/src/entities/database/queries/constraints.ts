@@ -7,7 +7,7 @@ export function databaseTableConstraintsQuery({ database, schema, table }: { dat
   return queryOptions({
     queryKey: ['database', database.id, 'constraints', schema, table],
     queryFn: async () => {
-      const [result] = await dbQuery(database.id, {
+      const [result] = await dbQuery(database, {
         query: constraintsSql(schema, table)[database.type],
       })
 

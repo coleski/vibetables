@@ -2,7 +2,6 @@ import type { RefObject } from 'react'
 import { parseConnectionString } from '@conar/connection'
 import { databaseLabels, DatabaseType } from '@conar/shared/enums/database-type'
 import { SyncType } from '@conar/shared/enums/sync-type'
-import { getProtocols } from '@conar/shared/utils/connections'
 import { title } from '@conar/shared/utils/title'
 import { AppLogo } from '@conar/ui/components/brand/app-logo'
 import { Button } from '@conar/ui/components/button'
@@ -20,10 +19,11 @@ import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { type } from 'arktype'
 import posthog from 'posthog-js'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { v7 } from 'uuid'
 import { ConnectionDetails } from '~/components/connection-details'
+import { ConnectionFields } from '~/components/connection-fields'
 import { Stepper, StepperContent, StepperList, StepperTrigger } from '~/components/stepper'
 import { DatabaseIcon, databasesCollection, prefetchDatabaseCore } from '~/entities/database'
 import { MongoIcon } from '~/icons/mongo'
@@ -82,9 +82,23 @@ function StepType({ type, setType }: { type: DatabaseType, setType: (type: Datab
   )
 }
 
-function StepCredentials({ ref, type, connectionString, setConnectionString }: { ref: RefObject<HTMLInputElement | null>, type: DatabaseType, connectionString: string, setConnectionString: (connectionString: string) => void }) {
-  const id = useId()
-
+function StepCredentials({
+  ref,
+  type,
+  connectionString,
+  setConnectionString,
+  individualFields,
+  setIndividualFields,
+  onConnectionChange,
+}: {
+  ref: RefObject<HTMLInputElement | null>
+  type: DatabaseType
+  connectionString: string
+  setConnectionString: (connectionString: string) => void
+  individualFields: { host: string, port: string, user: string, password: string, database: string }
+  setIndividualFields: (fields: { host: string, port: string, user: string, password: string, database: string }) => void
+  onConnectionChange: () => void
+}) {
   return (
     <Card className="w-full">
       <CardHeader>
@@ -92,20 +106,14 @@ function StepCredentials({ ref, type, connectionString, setConnectionString }: {
         <CardDescription>Enter the credentials of your connection.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Label htmlFor={id} className="mb-2">
-          Connection string
-        </Label>
-        <Input
-          id={id}
-          placeholder={`${getProtocols(type)[0]}://user:password@host:port/database?options`}
+        <ConnectionFields
           ref={ref}
-          value={connectionString}
-          onChange={e => setConnectionString(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-            }
-          }}
+          type={type}
+          connectionString={connectionString}
+          setConnectionString={setConnectionString}
+          individualFields={individualFields}
+          setIndividualFields={setIndividualFields}
+          onConnectionChange={onConnectionChange}
         />
       </CardContent>
     </Card>
@@ -180,10 +188,23 @@ function StepSave({ type, name, connectionString, setName, onRandomName, saveInC
   )
 }
 
+const defaultPorts: Record<DatabaseType, string> = {
+  [DatabaseType.Postgres]: '5432',
+  [DatabaseType.MySQL]: '3306',
+  [DatabaseType.MSSQL]: '1433',
+}
+
 function CreateConnectionPage() {
   const [step, setStep] = useState<'type' | 'credentials' | 'save'>('type')
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
+  const [individualFields, setIndividualFields] = useState({
+    host: '',
+    port: '5432',
+    user: '',
+    password: '',
+    database: '',
+  })
 
   function createDatabase(data: { connectionString: string, name: string, type: DatabaseType, saveInCloud: boolean }) {
     const id = v7()
@@ -249,6 +270,17 @@ function CreateConnectionPage() {
 
   const [typeValue, connectionString, name, saveInCloud] = useStore(form.store, ({ values }) => [values.type, values.connectionString, values.name, values.saveInCloud])
 
+  // Update port when database type changes
+  useEffect(() => {
+    if (!individualFields.host && !individualFields.user && !individualFields.database) {
+      // Only update port if no other fields are filled (i.e., on initial type selection)
+      setIndividualFields(prev => ({
+        ...prev,
+        port: defaultPorts[typeValue],
+      }))
+    }
+  }, [typeValue])
+
   return (
     <div className="min-h-screen flex flex-col justify-center">
       <form
@@ -307,9 +339,11 @@ function CreateConnectionPage() {
               type={typeValue}
               connectionString={connectionString}
               setConnectionString={(connectionString) => {
-                reset()
                 form.setFieldValue('connectionString', connectionString)
               }}
+              individualFields={individualFields}
+              setIndividualFields={setIndividualFields}
+              onConnectionChange={reset}
             />
             <div className="flex gap-2 justify-end mt-auto pt-4">
               <div className="flex gap-2">
