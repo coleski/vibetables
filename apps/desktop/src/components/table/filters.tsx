@@ -56,13 +56,31 @@ function useInternalContext() {
 function FilterColumnSelector({ ref, onSelect }: { ref?: RefObject<HTMLInputElement | null>, onSelect: (column: string) => void }) {
   const { columns } = useInternalContext()
 
+  const minWidth = useMemo(() => {
+    const longestColumn = columns.reduce((longest, column) => {
+      const length = column.id.length + column.type.length
+      return length > (longest.id.length + longest.type.length) ? column : longest
+    }, columns[0] || { id: '', type: '' })
+
+    // Approximate character width: ~8px per character + padding and gaps
+    const estimatedWidth = (longestColumn.id.length + longestColumn.type.length) * 8 + 80
+    return Math.min(Math.max(estimatedWidth, 300), 700)
+  }, [columns])
+
   return (
-    <Command>
+    <Command
+      filter={(value, search) => {
+        const searchLower = search.toLowerCase()
+        const valueLower = value.toLowerCase()
+        return valueLower.includes(searchLower) ? 1 : 0
+      }}
+      style={{ minWidth: `${minWidth}px` }}
+    >
       <CommandInput ref={ref} placeholder="Select column to filter..." />
       <CommandList className="h-fit max-h-[70vh]">
         <CommandEmpty>No columns found.</CommandEmpty>
         <CommandGroup>
-          {columns.map(column => (
+          {columns.toSorted((a, b) => a.id.localeCompare(b.id)).map(column => (
             <CommandItem
               key={column.id}
               value={column.id}
@@ -264,7 +282,7 @@ export function FilterItem({
           <RiDatabase2Line className="size-3 text-primary/70" />
           {filter.column}
         </PopoverTrigger>
-        <PopoverContent className="p-0 shadow-md">
+        <PopoverContent className="p-0 shadow-md w-fit">
           <FilterColumnSelector
             onSelect={column => onEdit({ column, operator: filter.operator, values })}
           />

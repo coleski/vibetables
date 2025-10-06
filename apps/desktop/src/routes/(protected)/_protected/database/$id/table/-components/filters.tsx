@@ -45,7 +45,7 @@ export function Filters() {
               <RiAddLine className="size-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="p-0">
+          <PopoverContent className="p-0 w-fit">
             <FilterForm
               onAdd={(filter) => {
                 toggleForm(false)

@@ -26,7 +26,7 @@ export function HeaderActionsFilters() {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <PopoverContent className="p-0 w-2xs" side="bottom" align="end">
+      <PopoverContent className="p-0 w-fit" side="bottom" align="end">
         <FilterForm
           onAdd={(filter) => {
             setIsFiltersOpened(false)
