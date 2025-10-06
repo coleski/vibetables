@@ -136,7 +136,7 @@ export function QueryPane({ table, schema, database }: { table: string, schema: 
           </div>
         </CardTitle>
       </CardHeader>
-      <div className="flex-1 relative">
+      <div className="flex-1 relative overflow-hidden">
         <Monaco
           data-mask
           ref={monacoRef}
@@ -150,6 +150,13 @@ export function QueryPane({ table, schema, database }: { table: string, schema: 
             lineNumbers: 'off',
             scrollBeyondLastLine: false,
             wordWrap: 'on',
+            scrollbar: {
+              vertical: 'auto',
+              horizontal: 'auto',
+              useShadows: false,
+              verticalScrollbarSize: 10,
+              horizontalScrollbarSize: 10,
+            },
           }}
         />
       </div>
