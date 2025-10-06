@@ -5,7 +5,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { useStore } from '@tanstack/react-store'
 import { useCallback, useEffect, useMemo } from 'react'
 import { Table, TableBody, TableProvider } from '~/components/table'
-import { databaseRowsQuery, DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from '~/entities/database'
+import { databaseCustomQueryRows, databaseRowsQuery, DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from '~/entities/database'
 import { TableCell } from '~/entities/database/components/table-cell'
 import { dbQuery } from '~/lib/query'
 import { queryClient } from '~/main'
@@ -48,9 +48,20 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
   const columns = useTableColumns({ database, table, schema })
   const store = usePageStoreContext()
   const hiddenColumns = useStore(store, state => state.hiddenColumns)
-  const [filters, orderBy] = useStore(store, state => [state.filters, state.orderBy])
+
+  // Consolidate store subscriptions to minimize re-renders
+  const { filters, orderBy, customQueryActive, query } = useStore(store, state => ({
+    filters: state.filters,
+    orderBy: state.orderBy,
+    customQueryActive: state.customQueryActive,
+    // Only include query value when custom query is active
+    query: state.customQueryActive ? state.query : '',
+  }))
+
   const { data: rows, error, isPending: isRowsPending } = useInfiniteQuery(
-    databaseRowsQuery({ database, table, schema, query: { filters, orderBy } }),
+    customQueryActive
+      ? databaseCustomQueryRows({ database, query })
+      : databaseRowsQuery({ database, table, schema, query: { filters, orderBy } }),
   )
   const primaryColumns = useMemo(() => columns?.filter(c => c.primaryKey).map(c => c.id) ?? [], [columns])
 
@@ -69,15 +80,17 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
   }, [store, rows, primaryColumns])
 
   const setValue = useCallback((rowIndex: number, columnName: string, value: unknown) => {
-    const rowsQueryOpts = databaseRowsQuery({
-      database,
-      table,
-      schema,
-      query: {
-        filters: store.state.filters,
-        orderBy: store.state.orderBy,
-      },
-    })
+    const rowsQueryOpts = customQueryActive
+      ? databaseCustomQueryRows({ database, query })
+      : databaseRowsQuery({
+        database,
+        table,
+        schema,
+        query: {
+          filters: store.state.filters,
+          orderBy: store.state.orderBy,
+        },
+      })
 
     queryClient.setQueryData(rowsQueryOpts.queryKey, data => data
       ? ({
@@ -93,18 +106,20 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
           })),
         })
       : data)
-  }, [database, table, schema, store])
+  }, [database, table, schema, store, customQueryActive, query])
 
   const saveValue = useCallback(async (rowIndex: number, columnId: string, value: unknown) => {
-    const rowsQueryOpts = databaseRowsQuery({
-      database,
-      table,
-      schema,
-      query: {
-        filters: store.state.filters,
-        orderBy: store.state.orderBy,
-      },
-    })
+    const rowsQueryOpts = customQueryActive
+      ? databaseCustomQueryRows({ database, query })
+      : databaseRowsQuery({
+        database,
+        table,
+        schema,
+        query: {
+          filters: store.state.filters,
+          orderBy: store.state.orderBy,
+        },
+      })
 
     const data = queryClient.getQueryData(rowsQueryOpts.queryKey)
 
@@ -131,7 +146,7 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
 
     if (filters.length > 0 || Object.keys(orderBy).length > 0)
       queryClient.invalidateQueries({ queryKey: rowsQueryOpts.queryKey.slice(0, -1) })
-  }, [database, table, schema, store, primaryColumns, setValue, columns, filters, orderBy])
+  }, [database, table, schema, store, primaryColumns, setValue, columns, filters, orderBy, customQueryActive, query])
 
   const setOrder = useCallback((columnId: string, order: 'ASC' | 'DESC') => {
     store.setState(state => ({
@@ -237,6 +252,8 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
                           database={database}
                           filters={filters}
                           orderBy={orderBy}
+                          customQueryActive={customQueryActive}
+                          query={query}
                         />
                       </>
                     )}

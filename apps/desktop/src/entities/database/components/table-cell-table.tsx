@@ -131,6 +131,8 @@ export function TableCellTable({ schema, table, column, value }: { schema: strin
                           database={database}
                           filters={filters}
                           orderBy={orderBy}
+                          customQueryActive={false}
+                          query=""
                         />
                       </>
                     )}

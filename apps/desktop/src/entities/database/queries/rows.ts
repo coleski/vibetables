@@ -61,3 +61,39 @@ export function databaseRowsQuery({
 export function useDatabaseRows(...params: Parameters<typeof databaseRowsQuery>) {
   return useInfiniteQuery(databaseRowsQuery(...params))
 }
+
+export function databaseCustomQueryRows({
+  database,
+  query,
+}: {
+  database: typeof databases.$inferSelect
+  query: string
+}) {
+  return infiniteQueryOptions({
+    initialPageParam: 0,
+    getNextPageParam: () => null, // Custom queries don't support pagination
+    queryKey: [
+      'database',
+      database.id,
+      'custom-query',
+      query,
+    ],
+    queryFn: async () => {
+      const [result] = await dbQuery(database, {
+        query,
+      })
+
+      return {
+        rows: result!.rows,
+        columns: result!.columns,
+        count: result!.count,
+      }
+    },
+    select: data => data.pages.flatMap(page => page.rows),
+    throwOnError: false,
+  })
+}
+
+export function useDatabaseCustomQueryRows(...params: Parameters<typeof databaseCustomQueryRows>) {
+  return useInfiniteQuery(databaseCustomQueryRows(...params))
+}

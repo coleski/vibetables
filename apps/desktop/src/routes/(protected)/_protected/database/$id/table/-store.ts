@@ -15,6 +15,8 @@ export const storeState = type({
     '[string]': '"ASC" | "DESC"',
   },
   prompt: 'string',
+  query: 'string',
+  customQueryActive: 'boolean',
 })
 
 export function getPageStoreState(id: string, schema: string, table: string) {
@@ -42,6 +44,8 @@ export function createPageStore({ id, schema, table }: { id: string, schema: str
       prompt: '',
       hiddenColumns: [],
       orderBy: {},
+      query: '',
+      customQueryActive: false,
     })
 
   store.subscribe((state) => {

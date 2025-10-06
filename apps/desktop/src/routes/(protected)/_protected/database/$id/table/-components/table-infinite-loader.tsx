@@ -6,7 +6,7 @@ import { RiLoaderLine } from '@remixicon/react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { useTableContext } from '~/components/table'
-import { databaseRowsQuery } from '~/entities/database'
+import { databaseCustomQueryRows, databaseRowsQuery } from '~/entities/database'
 import { TableEmpty } from './table-empty'
 
 export function TableInfiniteLoader({
@@ -15,15 +15,21 @@ export function TableInfiniteLoader({
   database,
   filters,
   orderBy,
+  customQueryActive,
+  query,
 }: {
   table: string
   schema: string
   database: typeof databases.$inferSelect
   filters: WhereFilter[]
   orderBy: Record<string, 'ASC' | 'DESC'>
+  customQueryActive: boolean
+  query: string
 }) {
   const { fetchNextPage, hasNextPage, isFetching } = useInfiniteQuery(
-    databaseRowsQuery({ database, table, schema, query: { filters, orderBy } }),
+    customQueryActive
+      ? databaseCustomQueryRows({ database, query })
+      : databaseRowsQuery({ database, table, schema, query: { filters, orderBy } }),
   )
   const loaderRef = useRef<HTMLDivElement>(null)
   const isVisible = useIsInViewport(loaderRef)
