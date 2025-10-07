@@ -8,14 +8,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@conar
 import { useDebouncedCallback } from '@conar/ui/hookas/use-debounced-callback'
 import { useSessionStorage } from '@conar/ui/hookas/use-session-storage'
 import { RiCheckLine, RiCloseLine, RiLoopLeftLine } from '@remixicon/react'
-import { useEffect, useState } from 'react'
-import { useDatabaseTablesAndSchemas } from '~/entities/database'
+import { memo, useEffect, useState } from 'react'
+import { useDatabaseAllColumns, useDatabaseTablesAndSchemas } from '~/entities/database'
+import { databaseAllColumnsQuery } from '~/entities/database/queries/columns'
 import { databaseForeignKeysQuery } from '~/entities/database/queries/foreign-keys'
 import { queryClient } from '~/main'
 import { TablesTree } from './tables-tree'
 
-export function Sidebar({ database }: { database: typeof databases.$inferSelect }) {
+export const Sidebar = memo(function Sidebar({ database }: { database: typeof databases.$inferSelect }) {
   const { data: tablesAndSchemas, refetch: refetchTablesAndSchemas, isFetching: isRefreshingTablesAndSchemas, dataUpdatedAt } = useDatabaseTablesAndSchemas({ database })
+  const { data: allColumns } = useDatabaseAllColumns({ database })
   const [storedSearch, setStoredSearch] = useSessionStorage(`database-tables-search-${database.id}`, '')
   const [inputValue, setInputValue] = useState(storedSearch)
   const [debouncedSearch, setDebouncedSearch] = useState(storedSearch)
@@ -39,6 +41,7 @@ export function Sidebar({ database }: { database: typeof databases.$inferSelect 
     await Promise.all([
       refetchTablesAndSchemas(),
       queryClient.invalidateQueries(databaseForeignKeysQuery({ database })),
+      queryClient.invalidateQueries(databaseAllColumnsQuery({ database })),
     ])
   }
 
@@ -79,8 +82,8 @@ export function Sidebar({ database }: { database: typeof databases.$inferSelect 
         {!!tablesAndSchemas && tablesAndSchemas.totalTables > 20 && (
           <div className="relative">
             <Input
-              placeholder="Search tables"
-              className="pr-8"
+              placeholder="Search"
+              className="pr-8 placeholder:font-light placeholder:text-muted-foreground/60"
               value={inputValue}
               onChange={e => handleSearchChange(e.target.value)}
             />
@@ -100,7 +103,8 @@ export function Sidebar({ database }: { database: typeof databases.$inferSelect 
         className="flex-1"
         database={database}
         search={debouncedSearch}
+        allColumns={allColumns}
       />
     </>
   )
-}
+})

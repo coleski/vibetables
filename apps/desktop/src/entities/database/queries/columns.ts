@@ -1,5 +1,5 @@
 import type { databases } from '~/drizzle'
-import { columnsSql, columnType } from '@conar/shared/sql/columns'
+import { allColumnsSql, allColumnsType, columnsSql, columnType } from '@conar/shared/sql/columns'
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { dbQuery } from '~/lib/query'
 
@@ -18,4 +18,21 @@ export function databaseTableColumnsQuery({ database, table, schema }: { databas
 
 export function useDatabaseTableColumns(...params: Parameters<typeof databaseTableColumnsQuery>) {
   return useQuery(databaseTableColumnsQuery(...params))
+}
+
+export function databaseAllColumnsQuery({ database }: { database: typeof databases.$inferSelect }) {
+  return queryOptions({
+    queryKey: ['database', database.id, 'all-columns'],
+    queryFn: async () => {
+      const [result] = await dbQuery(database, {
+        query: allColumnsSql()[database.type],
+      })
+
+      return result!.rows.map(col => allColumnsType.assert(col))
+    },
+  })
+}
+
+export function useDatabaseAllColumns(...params: Parameters<typeof databaseAllColumnsQuery>) {
+  return useQuery(databaseAllColumnsQuery(...params))
 }

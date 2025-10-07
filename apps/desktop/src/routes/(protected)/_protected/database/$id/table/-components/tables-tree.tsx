@@ -1,5 +1,7 @@
 import type { ComponentRef } from 'react'
 import type { databases } from '~/drizzle'
+import type { allColumnsType } from '@conar/shared/sql/columns'
+import type { Infer } from 'arktype'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@conar/ui/components/accordion'
 import { Button } from '@conar/ui/components/button'
 import { ScrollArea } from '@conar/ui/components/custom/scroll-area'
@@ -8,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@conar
 import { useSessionStorage } from '@conar/ui/hookas/use-session-storage'
 import { copy as copyToClipboard } from '@conar/ui/lib/copy'
 import { cn } from '@conar/ui/lib/utils'
-import { RiDeleteBin7Line, RiEditLine, RiFileCopyLine, RiMoreLine, RiStackLine, RiTableLine } from '@remixicon/react'
+import { RiCornerDownRightLine, RiDeleteBin7Line, RiEditLine, RiFileCopyLine, RiMoreLine, RiStackLine, RiTableLine } from '@remixicon/react'
 import { Link, useSearch } from '@tanstack/react-router'
 import { useMemo, useRef } from 'react'
 import { useDatabaseTablesAndSchemas } from '~/entities/database'
@@ -32,19 +34,48 @@ function Skeleton() {
   )
 }
 
-export function TablesTree({ database, className, search }: { database: typeof databases.$inferSelect, className?: string, search?: string }) {
+export function TablesTree({ database, className, search, allColumns }: { database: typeof databases.$inferSelect, className?: string, search?: string, allColumns?: Infer<typeof allColumnsType>[] }) {
   const { data: tablesAndSchemas, isPending } = useDatabaseTablesAndSchemas({ database })
   const { schema: schemaParam, table: tableParam } = useSearch({ from: '/(protected)/_protected/database/$id/table/' })
   const ref = useRef<HTMLDivElement>(null)
   const dropTableDialogRef = useRef<ComponentRef<typeof DropTableDialog>>(null)
   const renameTableDialogRef = useRef<ComponentRef<typeof RenameTableDialog>>(null)
 
-  const filteredTablesAndSchemas = useMemo(() => tablesAndSchemas?.schemas?.map(schema => ({
-    ...schema,
-    tables: schema.tables.filter(table =>
-      !search || table.toLowerCase().includes(search.toLowerCase()),
-    ).toSorted((a, b) => a.localeCompare(b)),
-  })).filter(schema => schema.tables.length) || [], [search, tablesAndSchemas])
+  const filteredTablesAndSchemas = useMemo(() => {
+    if (!tablesAndSchemas?.schemas) return []
+
+    return tablesAndSchemas.schemas.map(schema => {
+      // Filter tables by name
+      const matchingTables = schema.tables.filter(table =>
+        !search || table.toLowerCase().includes(search.toLowerCase()),
+      )
+
+      // Filter columns by name for this schema
+      const matchingColumns = search && allColumns
+        ? allColumns.filter(col =>
+            col.schema === schema.name &&
+            col.id.toLowerCase().includes(search.toLowerCase()),
+          )
+        : []
+
+      // Get unique tables from matching columns
+      const tablesWithMatchingColumns = [...new Set(matchingColumns.map(col => col.table))]
+
+      // Combine tables that match by name or have matching columns
+      const allMatchingTables = [...new Set([...matchingTables, ...tablesWithMatchingColumns])]
+        .toSorted((a, b) => a.localeCompare(b))
+
+      return {
+        ...schema,
+        tables: allMatchingTables,
+        columnsByTable: matchingColumns.reduce((acc, col) => {
+          if (!acc[col.table]) acc[col.table] = []
+          acc[col.table].push(col)
+          return acc
+        }, {} as Record<string, Infer<typeof allColumnsType>[]>),
+      }
+    }).filter(schema => schema.tables.length)
+  }, [search, tablesAndSchemas, allColumns])
 
   const [accordionValue, setAccordionValue] = useSessionStorage<string[]>(`database-tables-accordion-value-${database.id}`, () => schemaParam ? [schemaParam] : [tablesAndSchemas?.schemas[0]?.name ?? 'public'])
 
@@ -198,6 +229,38 @@ export function TablesTree({ database, className, search }: { database: typeof d
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </Link>
+                                {search && schema.columnsByTable[table] && schema.columnsByTable[table].length > 0 && (
+                                  <div className="ml-6 mt-1 space-y-1">
+                                    {schema.columnsByTable[table].map(column => (
+                                      <Link
+                                        key={column.id}
+                                        to="/database/$id/table"
+                                        params={{ id: database.id }}
+                                        search={{
+                                          schema: schema.name,
+                                          table,
+                                          column: column.id,
+                                        }}
+                                        className="group w-full flex items-center gap-2 py-0.5 px-2 text-xs text-muted-foreground rounded-md hover:bg-accent/20"
+                                      >
+                                        <div className="size-3 shrink-0 flex items-end justify-start opacity-30">
+                                          <div className="w-2 border-b border-l border-muted-foreground rounded-bl-[1px] h-2" />
+                                        </div>
+                                        <span className="truncate flex-1">
+                                          <span
+                                            // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml
+                                            dangerouslySetInnerHTML={{
+                                              __html: column.id.replace(
+                                                new RegExp(search, 'gi'),
+                                                match => `<mark class="text-white bg-primary/50">${match}</mark>`,
+                                              ),
+                                            }}
+                                          />
+                                        </span>
+                                      </Link>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </>

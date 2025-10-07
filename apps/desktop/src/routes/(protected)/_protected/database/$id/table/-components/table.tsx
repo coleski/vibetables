@@ -3,8 +3,8 @@ import { setSql } from '@conar/shared/sql/set'
 import { RiErrorWarningLine } from '@remixicon/react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useStore } from '@tanstack/react-store'
-import { useCallback, useEffect, useMemo } from 'react'
-import { Table, TableBody, TableProvider } from '~/components/table'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import { Table, TableBody, TableProvider, useTableContext } from '~/components/table'
 import { databaseCustomQueryRows, databaseRowsQuery, DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from '~/entities/database'
 import { TableCell } from '~/entities/database/components/table-cell'
 import { dbQuery } from '~/lib/query'
@@ -43,11 +43,81 @@ export function TableError({ error }: { error: Error }) {
   )
 }
 
+function ColumnScroller({ targetColumn }: { targetColumn: string | undefined }) {
+  const scrollRef = useTableContext(state => state.scrollRef)
+  const columns = useTableContext(state => state.columns)
+  const columnVirtualizer = useTableContext(state => state.columnVirtualizer)
+  const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!targetColumn || !scrollRef.current) {
+      return
+    }
+
+    const columnIndex = columns.findIndex(col => col.id === targetColumn)
+
+    if (columnIndex === -1) {
+      return
+    }
+
+    // Small delay to ensure the table is rendered
+    const timeout = setTimeout(() => {
+      if (!scrollRef.current) return
+
+      // Calculate the scroll position using the virtualizer
+      // Get the start position of the target column
+      let targetColumnStart = 0
+      for (let i = 0; i < columnIndex; i++) {
+        targetColumnStart += columns[i]?.size ?? DEFAULT_COLUMN_WIDTH
+      }
+
+      // Get the width of the first column (we want target column to be second from left)
+      const firstColumnWidth = columns[0]?.size ?? DEFAULT_COLUMN_WIDTH
+
+      // Calculate scroll position: target column start minus first column width
+      const scrollToPosition = Math.max(0, targetColumnStart - firstColumnWidth)
+
+      // Scroll to the calculated position instantly
+      scrollRef.current.scrollTo({
+        left: scrollToPosition,
+        behavior: 'auto',
+      })
+
+      // Set highlight
+      setHighlightedColumn(targetColumn)
+
+      // Remove highlight after animation
+      setTimeout(() => {
+        setHighlightedColumn(null)
+      }, 2000)
+    }, 150)
+
+    return () => clearTimeout(timeout)
+  }, [targetColumn, scrollRef, columns, columnVirtualizer])
+
+  // Store highlighted column in a data attribute on the scroll container
+  useEffect(() => {
+    if (scrollRef.current) {
+      if (highlightedColumn) {
+        scrollRef.current.setAttribute('data-highlighted-column', highlightedColumn)
+      }
+      else {
+        scrollRef.current.removeAttribute('data-highlighted-column')
+      }
+    }
+  }, [highlightedColumn, scrollRef])
+
+  return null
+}
+
 function TableComponent({ table, schema }: { table: string, schema: string }) {
   const { database } = Route.useLoaderData()
+  const { column: targetColumn } = Route.useSearch()
   const columns = useTableColumns({ database, table, schema })
   const store = usePageStoreContext()
   const hiddenColumns = useStore(store, state => state.hiddenColumns)
+  const [isPending, startTransition] = useTransition()
+  const [showContent, setShowContent] = useState(false)
 
   // Consolidate store subscriptions to minimize re-renders
   const { filters, orderBy, customQueryActive, query } = useStore(store, state => ({
@@ -64,6 +134,14 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
       : databaseRowsQuery({ database, table, schema, query: { filters, orderBy } }),
   )
   const primaryColumns = useMemo(() => columns?.filter(c => c.primaryKey).map(c => c.id) ?? [], [columns])
+
+  // Progressive rendering: show headers immediately, defer content rendering
+  useEffect(() => {
+    setShowContent(false)
+    startTransition(() => {
+      setShowContent(true)
+    })
+  }, [table, schema])
 
   useEffect(() => {
     if (!rows || !store.state.selected)
@@ -232,10 +310,11 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
       estimatedRowSize={DEFAULT_ROW_HEIGHT}
       estimatedColumnSize={DEFAULT_COLUMN_WIDTH}
     >
+      <ColumnScroller targetColumn={targetColumn} />
       <div className="size-full relative bg-background">
         <Table>
           <TableHeader />
-          {isRowsPending
+          {!showContent || isRowsPending
             ? <TableBodySkeleton selectable={primaryColumns.length > 0} />
             : error
               ? <TableError error={error} />

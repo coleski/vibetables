@@ -17,6 +17,9 @@ interface TableContextType {
   virtualColumns: VirtualItem[]
   tableHeight: number
   tableWidth: number
+  columnVirtualizer: {
+    scrollToIndex: (index: number, options?: { align?: 'start' | 'center' | 'end' | 'auto', behavior?: ScrollBehavior }) => void
+  }
 }
 
 const TableContext = createContext<TableContextType>(null!)
@@ -88,6 +91,7 @@ export function TableProvider({
     virtualColumns,
     tableHeight,
     tableWidth,
+    columnVirtualizer,
   }), [
     scrollRef,
     scrollDirection,
@@ -97,6 +101,7 @@ export function TableProvider({
     virtualColumns,
     tableHeight,
     tableWidth,
+    columnVirtualizer,
   ])
 
   return (

@@ -16,12 +16,10 @@ import { setQueryPaneOpen, usePageStoreContext } from '../-store'
 
 export function QueryPane({ table, schema, database }: { table: string, schema: string, database: typeof databases.$inferSelect }) {
   const store = usePageStoreContext()
-  const { query, filters, orderBy, customQueryActive } = useStore(store, state => ({
-    query: state.query,
-    filters: state.filters,
-    orderBy: state.orderBy,
-    customQueryActive: state.customQueryActive,
-  }))
+  const query = useStore(store, state => state.query)
+  const filters = useStore(store, state => state.filters)
+  const orderBy = useStore(store, state => state.orderBy)
+  const customQueryActive = useStore(store, state => state.customQueryActive)
   const { data: total } = useDatabaseTableTotal({ database, table, schema, query: { filters } })
   const monacoRef = useRef<editor.IStandaloneCodeEditor>(null)
   const [isRunning, setIsRunning] = useState(false)

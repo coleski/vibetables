@@ -8,8 +8,8 @@ export const SUPPORT_EMAIL = 'valerii.strilets@gmail.com'
 
 export const PORTS = {
   DEV: {
-    API: 3000,
-    WEB: 3001,
+    API: 9000,
+    WEB: 9001,
     DESKTOP: 3002,
   },
   TEST: {

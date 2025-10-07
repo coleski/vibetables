@@ -7,7 +7,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@conar/ui/
 import { useStore } from '@tanstack/react-store'
 import { createFileRoute } from '@tanstack/react-router'
 import { type } from 'arktype'
-import { useEffect } from 'react'
+import { memo, useEffect } from 'react'
 import { FiltersProvider } from '~/components/table'
 import { prefetchDatabaseCore, prefetchDatabaseTableCore, useLastOpenedTable } from '~/entities/database'
 import { Filters } from './-components/filters'
@@ -26,6 +26,7 @@ export const Route = createFileRoute(
   validateSearch: type({
     'schema?': 'string',
     'table?': 'string',
+    'column?': 'string',
     'filters?': 'object[]' as type.cast<WhereFilter[]>,
     'orderBy?': 'object' as type.cast<Record<string, 'ASC' | 'DESC'>>,
   }),
@@ -105,7 +106,6 @@ function TableContent({ table, schema, store }: { table: string, schema: string,
     <PageStoreContext value={store}>
       <TablesTabs database={database} />
       <div
-        key={table}
         className="h-[calc(100%-theme(spacing.9))]"
         onClick={() => addTab(database.id, schema, table)}
       >
