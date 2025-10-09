@@ -6,6 +6,7 @@ import { dbQuery } from '~/lib/query'
 export function databaseTableConstraintsQuery({ database, schema, table }: { database: typeof databases.$inferSelect, schema: string, table: string }) {
   return queryOptions({
     queryKey: ['database', database.id, 'constraints', schema, table],
+    staleTime: 5 * 60 * 1000, // 5 minutes - constraints rarely change
     queryFn: async () => {
       const [result] = await dbQuery(database, {
         query: constraintsSql(schema, table)[database.type],

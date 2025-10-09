@@ -27,6 +27,7 @@ export const Route = createFileRoute(
     'schema?': 'string',
     'table?': 'string',
     'column?': 'string',
+    '_t?': 'number',
     'filters?': 'object[]' as type.cast<WhereFilter[]>,
     'orderBy?': 'object' as type.cast<Record<string, 'ASC' | 'DESC'>>,
   }),

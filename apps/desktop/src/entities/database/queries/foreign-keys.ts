@@ -6,6 +6,7 @@ import { dbQuery } from '~/lib/query'
 export function databaseForeignKeysQuery({ database }: { database: typeof databases.$inferSelect }) {
   return queryOptions({
     queryKey: ['database', database.id, 'foreign-keys'],
+    staleTime: 5 * 60 * 1000, // 5 minutes - foreign keys rarely change
     queryFn: async () => {
       const [result] = await dbQuery(database, {
         query: foreignKeysSql()[database.type],

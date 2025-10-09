@@ -21,6 +21,7 @@ export function databaseRowsQuery({
 }) {
   return infiniteQueryOptions({
     initialPageParam: 0,
+    staleTime: 60 * 1000, // 1 minute - data changes more frequently
     getNextPageParam: (lastPage: Page, _allPages: Page[], lastPageParam: number) => {
       return lastPage.rows.length === 0 || lastPage.rows.length < DEFAULT_LIMIT ? null : lastPageParam + DEFAULT_LIMIT
     },

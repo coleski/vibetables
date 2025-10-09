@@ -3,14 +3,29 @@ import { useMemo } from 'react'
 import { useDatabaseTableColumns, useDatabaseTableConstraints } from '~/entities/database'
 import { useDatabaseForeignKeys } from '~/entities/database/queries/foreign-keys'
 
+/**
+ * Combines column metadata with constraints and foreign key relationships.
+ *
+ * Performance optimization: Returns empty array immediately if base columns aren't loaded,
+ * preventing UI blocking. Constraints and foreign keys are progressively enhanced as they load.
+ *
+ * @param database - Database connection info
+ * @param table - Table name
+ * @param schema - Schema name
+ * @returns Array of columns with full metadata including constraints and relationships
+ */
 export function useTableColumns({ database, table, schema }: { database: typeof databases.$inferSelect, table: string, schema: string }) {
-  const { data: columns } = useDatabaseTableColumns({ database, table, schema })
+  const { data: columns, isPending: isColumnsPending } = useDatabaseTableColumns({ database, table, schema })
   const { data: constraints } = useDatabaseTableConstraints({ database, table, schema })
   const { data: foreignKeys } = useDatabaseForeignKeys({ database })
 
-  return useMemo(() => {
+  // Return empty array immediately if still loading to prevent blocking
+  // The constraints and foreignKeys can be applied later when they load
+  const processedColumns = useMemo(() => {
+    if (!columns) return []
+
     return columns
-      ?.map((column) => {
+      .map((column) => {
         const columnConstraints = constraints?.filter(constraint => constraint.column === column.id)
         const foreign = foreignKeys?.find(foreignKey => foreignKey.column === column.id && foreignKey.schema === schema && foreignKey.table === table)
 
@@ -42,6 +57,8 @@ export function useTableColumns({ database, table, schema }: { database: typeof 
         if (!a.primaryKey && b.primaryKey)
           return 1
         return 0
-      }) ?? []
+      })
   }, [columns, constraints, foreignKeys, schema, table])
+
+  return processedColumns
 }

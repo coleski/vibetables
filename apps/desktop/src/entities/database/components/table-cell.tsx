@@ -225,6 +225,7 @@ export function TableCell({
   const [isReferencesOpen, setIsReferencesOpen] = useState(false)
   const [isBig, setIsBig] = useState(false)
   const [canInteract, setCanInteract] = useState(false)
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false)
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
 
   useEffect(() => {
@@ -260,11 +261,11 @@ export function TableCell({
 
   if (!canInteract) {
     return (
-      <ContextMenu>
+      <ContextMenu onOpenChange={setIsContextMenuOpen}>
         <ContextMenuTrigger asChild>
           <TableCellContent
             position={position}
-            onMouseOver={() => setCanInteract(true)}
+            onMouseOver={() => !isContextMenuOpen && setCanInteract(true)}
             className={cellClassName}
             style={style}
             value={value}
@@ -308,7 +309,7 @@ export function TableCell({
   const date = column ? getTimestamp(value, column) : null
 
   function closePopover() {
-    if (!isPopoverOpen && !isForeignOpen && !isReferencesOpen) {
+    if (!isPopoverOpen && !isForeignOpen && !isReferencesOpen && !isContextMenuOpen) {
       sleep(200).then(() => setCanInteract(false))
     }
   }
@@ -324,7 +325,7 @@ export function TableCell({
       onSaveError={onSaveError}
       onSaveSuccess={onSaveSuccess}
     >
-      <ContextMenu>
+      <ContextMenu onOpenChange={setIsContextMenuOpen}>
         <Popover
           open={isPopoverOpen}
           onOpenChange={(isOpen) => {
@@ -449,7 +450,6 @@ export function TableCell({
           </TooltipProvider>
           <PopoverContent
             className={cn('p-0 w-80 overflow-auto duration-100 [transition:opacity_0.15s,transform_0.15s,width_0.3s]', isBig && 'w-[min(50vw,60rem)]')}
-            onAnimationEnd={closePopover}
           >
             <CellPopoverContent
               rowIndex={rowIndex}

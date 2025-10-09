@@ -1,4 +1,5 @@
 import { google } from '@ai-sdk/google'
+import { DatabaseType } from '@conar/shared/enums/database-type'
 import { SQL_OPERATORS_LIST } from '@conar/shared/utils/sql'
 import { generateObject } from 'ai'
 import { type } from 'arktype'
@@ -9,6 +10,7 @@ export const filters = protectedProcedure
   .input(type({
     prompt: 'string',
     context: 'string',
+    type: `"${DatabaseType.Postgres}" | "${DatabaseType.MySQL}" | "${DatabaseType.MSSQL}"`,
   }))
   .mutation(async ({ input, signal }) => {
     console.info('sql filters input', input)
@@ -21,6 +23,8 @@ export const filters = protectedProcedure
         If you do not generate any filters, a user will not be able to filter the data.
         Each your filters response will replace the previous filters.
 
+        Database type: ${input.type.toUpperCase()}
+
         Guidelines:
         - Return an empty array if the prompt is unclear or cannot be converted to filters
         - Create multiple filters when the query has multiple conditions
@@ -31,6 +35,14 @@ export const filters = protectedProcedure
         - For exact days use >= and <= operators
         - If user asks 'empty' and the column is a string, use empty string as value
         - If context already contains a filter, you can use it as reference to generate a new filter
+
+        ${input.type === DatabaseType.Postgres
+          ? 'Database-specific formatting:\n        - For PostgreSQL: Use standard SQL date/time formats, case-sensitive string matching by default, supports ILIKE for case-insensitive matching'
+          : input.type === DatabaseType.MySQL
+            ? 'Database-specific formatting:\n        - For MySQL: Date format is YYYY-MM-DD, string matching is case-insensitive by default, use BINARY for case-sensitive matching'
+            : input.type === DatabaseType.MSSQL
+              ? 'Database-specific formatting:\n        - For Microsoft SQL Server: Use standard SQL date formats (YYYY-MM-DD), supports LIKE for pattern matching, case sensitivity depends on collation'
+              : ''}
 
         Current time: ${new Date().toISOString()}
         Available operators: ${JSON.stringify(SQL_OPERATORS_LIST, null, 2)}

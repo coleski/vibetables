@@ -1,5 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { google } from '@ai-sdk/google'
+import { DatabaseType } from '@conar/shared/enums/database-type'
 import { SQL_OPERATORS_LIST } from '@conar/shared/utils/sql'
 import { generateObject } from 'ai'
 import { type } from 'arktype'
@@ -12,6 +13,7 @@ export const filters = orpc
   .input(type({
     'prompt': 'string',
     'context': 'string',
+    'type': `"${DatabaseType.Postgres}" | "${DatabaseType.MySQL}" | "${DatabaseType.MSSQL}"`,
     'userApiKey?': 'string',
   }))
   .handler(async ({ input, signal, context }) => {
@@ -35,6 +37,8 @@ export const filters = orpc
         'You should understand the sense of the prompt as much as possible.',
         'Each of your filters or ordering responses will replace the previous ones.',
         '',
+        `Database type: ${input.type.toUpperCase()}`,
+        '',
         'Guidelines:',
         '- Create multiple filters when the query has multiple conditions',
         '- Use exact column names as provided in the context',
@@ -46,6 +50,14 @@ export const filters = orpc
         '- If context already contains a filter, you can use it as reference to generate a new filter',
         '- User can paste only the value, you should try to understand to which column the value belongs',
         '- Try to generate at least one filter unless the prompt is completely unclear',
+        '',
+        ...(input.type === DatabaseType.Postgres
+          ? ['Database-specific formatting:', '- For PostgreSQL: Use standard SQL date/time formats, case-sensitive string matching by default, supports ILIKE for case-insensitive matching']
+          : input.type === DatabaseType.MySQL
+            ? ['Database-specific formatting:', '- For MySQL: Date format is YYYY-MM-DD, string matching is case-insensitive by default, use BINARY for case-sensitive matching']
+            : input.type === DatabaseType.MSSQL
+              ? ['Database-specific formatting:', '- For Microsoft SQL Server: Use standard SQL date formats (YYYY-MM-DD), supports LIKE for pattern matching, case sensitivity depends on collation']
+              : []),
         // '',
         // ' Ordering:',
         // ' - If the user requests sorting or ordering (e.g., "sort by date descending", "order by name ascending"), generate an orderBy object.',

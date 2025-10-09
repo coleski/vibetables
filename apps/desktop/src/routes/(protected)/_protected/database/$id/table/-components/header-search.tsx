@@ -29,7 +29,7 @@ export function HeaderSearch({ table, schema }: { table: string, schema: string 
         ? await getUserApiKey(AiProvider.Anthropic)
         : undefined
 
-      return orpc.ai.filters({ ...data, userApiKey })
+      return orpc.ai.filters({ ...data, type: database.type, userApiKey })
     },
     onSuccess: (data) => {
       store.setState(state => ({

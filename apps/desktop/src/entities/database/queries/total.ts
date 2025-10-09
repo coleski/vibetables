@@ -29,6 +29,7 @@ export function databaseTableTotalQuery({
         filters: query.filters,
       },
     ],
+    staleTime: 60 * 1000, // 1 minute - row counts change with data
     queryFn: async () => {
       const [result] = await dbQuery(database, {
         query: totalSql(schema, table, {

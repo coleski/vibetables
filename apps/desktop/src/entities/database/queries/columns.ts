@@ -6,6 +6,7 @@ import { dbQuery } from '~/lib/query'
 export function databaseTableColumnsQuery({ database, table, schema }: { database: typeof databases.$inferSelect, table: string, schema: string }) {
   return queryOptions({
     queryKey: ['database', database.id, 'columns', schema, table],
+    staleTime: 5 * 60 * 1000, // 5 minutes - column structure rarely changes
     queryFn: async () => {
       const [result] = await dbQuery(database, {
         query: columnsSql(schema, table)[database.type],
@@ -23,6 +24,7 @@ export function useDatabaseTableColumns(...params: Parameters<typeof databaseTab
 export function databaseAllColumnsQuery({ database }: { database: typeof databases.$inferSelect }) {
   return queryOptions({
     queryKey: ['database', database.id, 'all-columns'],
+    staleTime: 5 * 60 * 1000, // 5 minutes - column structure rarely changes
     queryFn: async () => {
       const [result] = await dbQuery(database, {
         query: allColumnsSql()[database.type],

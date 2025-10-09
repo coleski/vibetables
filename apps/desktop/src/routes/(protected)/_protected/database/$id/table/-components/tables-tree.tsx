@@ -4,6 +4,7 @@ import type { allColumnsType } from '@conar/shared/sql/columns'
 import type { Infer } from 'arktype'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@conar/ui/components/accordion'
 import { Button } from '@conar/ui/components/button'
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@conar/ui/components/context-menu'
 import { ScrollArea } from '@conar/ui/components/custom/scroll-area'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@conar/ui/components/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@conar/ui/components/tooltip'
@@ -12,8 +13,9 @@ import { copy as copyToClipboard } from '@conar/ui/lib/copy'
 import { cn } from '@conar/ui/lib/utils'
 import { RiCornerDownRightLine, RiDeleteBin7Line, RiEditLine, RiFileCopyLine, RiMoreLine, RiStackLine, RiTableLine } from '@remixicon/react'
 import { Link, useSearch } from '@tanstack/react-router'
-import { useMemo, useRef } from 'react'
-import { useDatabaseTablesAndSchemas } from '~/entities/database'
+import { useCallback, useMemo, useRef } from 'react'
+import { prefetchDatabaseTableCore, useDatabaseTablesAndSchemas } from '~/entities/database'
+import { formatColumnSchema, formatTableSchema } from '../-lib'
 import { addTab } from '../-tabs'
 import { DropTableDialog } from './drop-table-dialog'
 import { RenameTableDialog } from './rename-table-dialog'
@@ -40,6 +42,22 @@ export function TablesTree({ database, className, search, allColumns }: { databa
   const ref = useRef<HTMLDivElement>(null)
   const dropTableDialogRef = useRef<ComponentRef<typeof DropTableDialog>>(null)
   const renameTableDialogRef = useRef<ComponentRef<typeof RenameTableDialog>>(null)
+
+  /**
+   * Prefetches table data on hover to provide near-instant navigation.
+   *
+   * Performance optimization: Eagerly loads table metadata and initial rows
+   * when user hovers over a table in the sidebar, eliminating loading delays
+   * when the table is clicked.
+   */
+  const handleTableHover = useCallback((schema: string, table: string) => {
+    prefetchDatabaseTableCore({
+      database,
+      schema,
+      table,
+      query: { filters: [], orderBy: {} },
+    })
+  }, [database])
 
   const filteredTablesAndSchemas = useMemo(() => {
     if (!tablesAndSchemas?.schemas) return []
@@ -147,122 +165,153 @@ export function TablesTree({ database, className, search, allColumns }: { databa
                         </AccordionTrigger>
                         <AccordionContent className="pb-0">
                           <>
-                            {schema.tables.map(table => (
-                              <div key={table}>
-                                <Link
-                                  to="/database/$id/table"
-                                  params={{ id: database.id }}
-                                  search={{
-                                    schema: schema.name,
-                                    table,
-                                  }}
-                                  onDoubleClick={() => addTab(database.id, schema.name, table)}
-                                  className={cn(
-                                    'group w-full flex items-center gap-2 border border-transparent py-1 px-2 text-sm text-foreground rounded-md hover:bg-accent/30',
-                                    tableParam === table && 'bg-primary/10 hover:bg-primary/20 border-primary/20',
-                                  )}
-                                >
-                                  <RiTableLine
-                                    className={cn(
-                                      'size-4 text-muted-foreground shrink-0 opacity-50',
-                                      tableParam === table && 'text-primary opacity-100',
-                                    )}
-                                  />
-                                  <span className="truncate">
-                                    {search
-                                      ? (
-                                          <span
-                                            // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml
-                                            dangerouslySetInnerHTML={{
-                                              __html: table.replace(
-                                                new RegExp(search, 'gi'),
-                                                match => `<mark class="text-white bg-primary/50">${match}</mark>`,
-                                              ),
-                                            }}
-                                          />
-                                        )
-                                      : table}
-                                  </span>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon-xs"
-                                        className={cn(
-                                          'opacity-0 focus-visible:opacity-100 group-hover:opacity-100 ml-auto transition-opacity',
-                                          tableParam === table && 'hover:bg-primary/10',
-                                        )}
-                                        onClick={e => e.stopPropagation()}
-                                      >
-                                        <RiMoreLine className="size-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="min-w-48">
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          copyToClipboard(table, 'Table name copied')
-                                        }}
-                                      >
-                                        <RiFileCopyLine className="size-4" />
-                                        Copy Name
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          renameTableDialogRef.current?.rename(schema.name, table)
-                                        }}
-                                      >
-                                        <RiEditLine className="size-4" />
-                                        Rename
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        variant="destructive"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          dropTableDialogRef.current?.drop(schema.name, table)
-                                        }}
-                                      >
-                                        <RiDeleteBin7Line className="size-4" />
-                                        Drop
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </Link>
-                                {search && schema.columnsByTable[table] && schema.columnsByTable[table].length > 0 && (
-                                  <div className="ml-6 mt-1 space-y-1">
-                                    {schema.columnsByTable[table].map(column => (
+                            {schema.tables.map(table => {
+                              const tableColumns = allColumns?.filter(col => col.schema === schema.name && col.table === table) ?? []
+                              return (
+                                <div key={table}>
+                                  <ContextMenu>
+                                    <ContextMenuTrigger asChild>
                                       <Link
-                                        key={column.id}
                                         to="/database/$id/table"
                                         params={{ id: database.id }}
                                         search={{
                                           schema: schema.name,
                                           table,
-                                          column: column.id,
                                         }}
-                                        className="group w-full flex items-center gap-2 py-0.5 px-2 text-xs text-muted-foreground rounded-md hover:bg-accent/20"
+                                        onMouseEnter={() => handleTableHover(schema.name, table)}
+                                        onDoubleClick={() => addTab(database.id, schema.name, table)}
+                                        className={cn(
+                                          'group w-full flex items-center gap-2 border border-transparent py-1 px-2 text-sm text-foreground rounded-md hover:bg-accent/30',
+                                          tableParam === table && 'bg-primary/10 hover:bg-primary/20 border-primary/20',
+                                        )}
                                       >
-                                        <div className="size-3 shrink-0 flex items-end justify-start opacity-30">
-                                          <div className="w-2 border-b border-l border-muted-foreground rounded-bl-[1px] h-2" />
-                                        </div>
-                                        <span className="truncate flex-1">
-                                          <span
-                                            // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml
-                                            dangerouslySetInnerHTML={{
-                                              __html: column.id.replace(
-                                                new RegExp(search, 'gi'),
-                                                match => `<mark class="text-white bg-primary/50">${match}</mark>`,
-                                              ),
-                                            }}
-                                          />
+                                        <RiTableLine
+                                          className={cn(
+                                            'size-4 text-muted-foreground shrink-0 opacity-50',
+                                            tableParam === table && 'text-primary opacity-100',
+                                          )}
+                                        />
+                                        <span className="truncate">
+                                          {search
+                                            ? (
+                                                <span
+                                                  // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml
+                                                  dangerouslySetInnerHTML={{
+                                                    __html: table.replace(
+                                                      new RegExp(search, 'gi'),
+                                                      match => `<mark class="text-white bg-primary/50">${match}</mark>`,
+                                                    ),
+                                                  }}
+                                                />
+                                              )
+                                            : table}
                                         </span>
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon-xs"
+                                              className={cn(
+                                                'opacity-0 focus-visible:opacity-100 group-hover:opacity-100 ml-auto transition-opacity',
+                                                tableParam === table && 'hover:bg-primary/10',
+                                              )}
+                                              onClick={e => e.stopPropagation()}
+                                            >
+                                              <RiMoreLine className="size-3" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end" className="min-w-48">
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                copyToClipboard(table, 'Table name copied')
+                                              }}
+                                            >
+                                              <RiFileCopyLine className="size-4" />
+                                              Copy Name
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                renameTableDialogRef.current?.rename(schema.name, table)
+                                              }}
+                                            >
+                                              <RiEditLine className="size-4" />
+                                              Rename
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              variant="destructive"
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                dropTableDialogRef.current?.drop(schema.name, table)
+                                              }}
+                                            >
+                                              <RiDeleteBin7Line className="size-4" />
+                                              Drop
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
                                       </Link>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                                    </ContextMenuTrigger>
+                                    <ContextMenuContent>
+                                      <ContextMenuItem
+                                        onClick={() => {
+                                          const schemaText = formatTableSchema(table, schema.name, tableColumns)
+                                          copyToClipboard(schemaText, 'Table schema copied to clipboard')
+                                        }}
+                                      >
+                                        Copy Schema
+                                      </ContextMenuItem>
+                                    </ContextMenuContent>
+                                  </ContextMenu>
+                                  {search && schema.columnsByTable[table] && schema.columnsByTable[table].length > 0 && (
+                                    <div className="ml-6 mt-1 space-y-1">
+                                      {schema.columnsByTable[table].map(column => (
+                                        <ContextMenu key={column.id}>
+                                          <ContextMenuTrigger asChild>
+                                            <Link
+                                              to="/database/$id/table"
+                                              params={{ id: database.id }}
+                                              search={{
+                                                schema: schema.name,
+                                                table,
+                                                column: column.id,
+                                                _t: Date.now(),
+                                              }}
+                                              className="group w-full flex items-center gap-2 py-0.5 px-2 text-xs text-muted-foreground rounded-md hover:bg-accent/20"
+                                            >
+                                              <div className="size-3 shrink-0 flex items-end justify-start opacity-30">
+                                                <div className="w-2 border-b border-l border-muted-foreground rounded-bl-[1px] h-2" />
+                                              </div>
+                                              <span className="truncate flex-1">
+                                                <span
+                                                  // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml
+                                                  dangerouslySetInnerHTML={{
+                                                    __html: column.id.replace(
+                                                      new RegExp(search, 'gi'),
+                                                      match => `<mark class="text-white bg-primary/50">${match}</mark>`,
+                                                    ),
+                                                  }}
+                                                />
+                                              </span>
+                                            </Link>
+                                          </ContextMenuTrigger>
+                                          <ContextMenuContent>
+                                            <ContextMenuItem
+                                              onClick={() => {
+                                                copyToClipboard(formatColumnSchema(column), 'Column schema copied to clipboard')
+                                              }}
+                                            >
+                                              Copy Schema
+                                            </ContextMenuItem>
+                                          </ContextMenuContent>
+                                        </ContextMenu>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
                           </>
                         </AccordionContent>
                       </AccordionItem>

@@ -6,6 +6,7 @@ import { dbQuery } from '~/lib/query'
 export function tablesAndSchemasQuery({ database }: { database: typeof databases.$inferSelect }) {
   return queryOptions({
     queryKey: ['database', database.id, 'tables-and-schemas'],
+    staleTime: 5 * 60 * 1000, // 5 minutes - schema structure rarely changes
     queryFn: async () => {
       const [result] = await dbQuery(database, {
         query: tablesAndSchemasSql()[database.type],
