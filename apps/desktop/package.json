@@ -3,14 +3,14 @@
   "type": "module",
   "version": "0.21.1",
   "private": true,
-  "description": "AI-powered tool that makes database operations easier. Built for PostgreSQL. Modern alternative to traditional database management tools.",
+  "description": "vibetables - AI-powered tool that makes database operations easier. Built for PostgreSQL. Modern alternative to traditional database management tools.",
   "author": {
     "name": "Wannabe Space, LLC",
     "email": "wannabespace.llc@gmail.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/wannabespace/conar.git"
+    "url": "https://github.com/wannabespace/vibetables.git"
   },
   "main": "./out/main/index.js",
   "scripts": {

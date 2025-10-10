@@ -17,27 +17,35 @@ import { RemoveConnectionDialog } from './remove-connection-dialog'
 import { RenameConnectionDialog } from './rename-connection-dialog'
 
 function maskConnectionString(connectionString: string, hasPassword: boolean): string {
-  // Check if ADO.NET format (no ://)
-  if (!connectionString.includes('://') && connectionString.includes(';')) {
-    const config = parseConnectionString(connectionString)
-    if (!hasPassword && !config.password)
-      return connectionString
+  try {
+    // Check if ADO.NET format (no ://)
+    if (!connectionString.includes('://') && connectionString.includes(';')) {
+      const config = parseConnectionString(connectionString)
+      if (!hasPassword && !config.password)
+        return connectionString
 
-    const passwordLength = config.password?.length || 6
-    const maskedPassword = '*'.repeat(passwordLength)
+      const passwordLength = config.password?.length || 6
+      const maskedPassword = '*'.repeat(passwordLength)
 
-    return connectionString.replace(
-      /password=[^;]*/i,
-      `password=${maskedPassword}`,
-    )
+      return connectionString.replace(
+        /password=[^;]*/i,
+        `password=${maskedPassword}`,
+      )
+    }
+
+    // URL format
+    const url = new SafeURL(connectionString)
+    if (hasPassword || url.password) {
+      url.password = '*'.repeat(url.password.length || 6)
+    }
+    return url.toString()
+  } catch (error) {
+    // If parsing fails, return masked version of original string
+    if (hasPassword) {
+      return connectionString.replace(/:[^@]+@/, ':******@')
+    }
+    return connectionString
   }
-
-  // URL format
-  const url = new SafeURL(connectionString)
-  if (hasPassword || url.password) {
-    url.password = '*'.repeat(url.password.length || 6)
-  }
-  return url.toString()
 }
 
 function DatabaseCard({ database, onRemove, onRename, onEdit }: { database: typeof databases.$inferSelect, onRemove: () => void, onRename: () => void, onEdit: () => void }) {

@@ -1,6 +1,6 @@
 export const SOCIAL_LINKS = {
-  GITHUB: 'https://github.com/wannabespace/conar',
-  TWITTER: 'https://x.com/conar_app',
+  GITHUB: 'https://github.com/wannabespace/vibetables',
+  TWITTER: 'https://x.com/vibetables_app',
   DISCORD: 'https://discord.gg/XweDPUVadR',
 } as const
 

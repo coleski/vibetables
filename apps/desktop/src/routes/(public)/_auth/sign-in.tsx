@@ -24,7 +24,7 @@ function SignInPage() {
     <>
       <div className="space-y-2">
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          Sign in to Conar
+          Sign in to vibetables
         </h1>
         <p className="text-sm text-muted-foreground">
           Don't have an account?
