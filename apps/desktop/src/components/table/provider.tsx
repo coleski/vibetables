@@ -19,6 +19,7 @@ interface TableContextType {
   tableWidth: number
   columnVirtualizer: {
     scrollToIndex: (index: number, options?: { align?: 'start' | 'center' | 'end' | 'auto', behavior?: ScrollBehavior }) => void
+    measure: () => void
   }
 }
 

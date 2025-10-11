@@ -7,10 +7,12 @@ import { copy } from '@conar/ui/lib/copy'
 import { cn } from '@conar/ui/lib/utils'
 import { RiArrowDownLine, RiArrowUpDownLine, RiArrowUpLine, RiBookOpenLine, RiEraserLine, RiFingerprintLine, RiKey2Line, RiLinksLine } from '@remixicon/react'
 import { useStore } from '@tanstack/react-store'
+import { useRef, useState } from 'react'
 import { formatColumnSchema } from '../-lib'
 import { usePageStoreContext } from '../-store'
 
 const CANNOT_SORT_TYPES = ['json']
+const MIN_COLUMN_WIDTH = 50
 
 function SortButton({ order, onClick }: { order: 'ASC' | 'DESC' | null, onClick: () => void }) {
   return (
@@ -44,15 +46,80 @@ function SortButton({ order, onClick }: { order: 'ASC' | 'DESC' | null, onClick:
   )
 }
 
+/**
+ * Draggable handle for resizing table columns.
+ *
+ * Performance optimization: Uses inline styles during drag for smooth 60fps resizing
+ * without triggering React re-renders. Final size is committed to state on mouse up.
+ */
+function ResizeHandle({ onResize, initialSize, columnId }: { onResize: (size: number) => void, initialSize: number, columnId: string }) {
+  const [isResizing, setIsResizing] = useState(false)
+  const startXRef = useRef(0)
+  const startWidthRef = useRef(0)
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+    startXRef.current = e.clientX
+    startWidthRef.current = initialSize
+
+    const columnElements = document.querySelectorAll(`[data-column-id="${columnId}"]`)
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - startXRef.current
+      const newWidth = Math.max(MIN_COLUMN_WIDTH, startWidthRef.current + delta)
+
+      // Directly manipulate DOM for instant feedback without re-renders
+      columnElements.forEach((el) => {
+        (el as HTMLElement).style.width = `${newWidth}px`
+      })
+    }
+
+    const handleMouseUp = (e: MouseEvent) => {
+      setIsResizing(false)
+      const delta = e.clientX - startXRef.current
+      const finalWidth = Math.max(MIN_COLUMN_WIDTH, startWidthRef.current + delta)
+
+      // Clear inline styles before state update
+      columnElements.forEach((el) => {
+        (el as HTMLElement).style.width = ''
+      })
+
+      // Persist the final size
+      onResize(finalWidth)
+
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+
+  return (
+    <div
+      className={cn(
+        'absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors group-hover:bg-primary/30',
+        isResizing && 'bg-primary',
+      )}
+      onMouseDown={handleMouseDown}
+      style={{ zIndex: 10 }}
+    />
+  )
+}
+
 export function TableHeaderCell({
   onSort,
+  onResize,
   column,
   position,
   columnIndex,
   className,
   style,
+  size,
   isHighlighted = false,
-}: { column: Column, onSort?: () => void, isHighlighted?: boolean } & TableHeaderCellProps) {
+}: { column: Column, onSort?: () => void, onResize?: (size: number) => void, isHighlighted?: boolean } & TableHeaderCellProps) {
   const store = usePageStoreContext()
   const order = useStore(store, state => state.orderBy?.[column.id] ?? null)
 
@@ -61,7 +128,7 @@ export function TableHeaderCell({
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            'flex w-full items-center justify-between shrink-0 p-2',
+            'flex w-full items-center justify-between shrink-0 p-2 relative',
             position === 'first' && 'pl-4',
             position === 'last' && 'pr-4',
             className,
@@ -184,6 +251,9 @@ export function TableHeaderCell({
           </div>
           {onSort && column.type && !CANNOT_SORT_TYPES.includes(column.type) && (
             <SortButton order={order} onClick={onSort} />
+          )}
+          {onResize && size && (
+            <ResizeHandle onResize={onResize} initialSize={size} columnId={column.id} />
           )}
         </div>
       </ContextMenuTrigger>

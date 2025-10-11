@@ -14,6 +14,9 @@ export const storeState = type({
   orderBy: {
     '[string]': '"ASC" | "DESC"',
   },
+  columnSizes: {
+    '[string]': 'number',
+  },
   prompt: 'string',
   query: 'string',
   customQueryActive: 'boolean',
@@ -28,6 +31,10 @@ export function getPageStoreState(id: string, schema: string, table: string) {
   return parsed
 }
 
+function getPromptForDatabase(id: string): string {
+  return sessionStorage.getItem(`${id}-prompt`) ?? ''
+}
+
 const storesMap = new Map<string, Store<typeof storeState.infer>>()
 
 export function createPageStore({ id, schema, table }: { id: string, schema: string, table: string }) {
@@ -37,19 +44,26 @@ export function createPageStore({ id, schema, table }: { id: string, schema: str
     return storesMap.get(key)!
   }
 
-  const store = new Store<typeof storeState.infer>(getPageStoreState(id, schema, table)
-    ?? {
-      selected: [],
-      filters: [],
-      prompt: '',
-      hiddenColumns: [],
-      orderBy: {},
-      query: '',
-      customQueryActive: false,
-    })
+  const state = getPageStoreState(id, schema, table)
+  const store = new Store<typeof storeState.infer>({
+    selected: state?.selected ?? [],
+    filters: state?.filters ?? [],
+    prompt: getPromptForDatabase(id),
+    hiddenColumns: state?.hiddenColumns ?? [],
+    orderBy: state?.orderBy ?? {},
+    columnSizes: state?.columnSizes ?? {},
+    query: state?.query ?? '',
+    customQueryActive: state?.customQueryActive ?? false,
+  })
 
   store.subscribe((state) => {
-    sessionStorage.setItem(`${key}-store`, JSON.stringify(state.currentVal))
+    // Store prompt separately per database
+    sessionStorage.setItem(`${id}-prompt`, state.currentVal.prompt)
+    // Store other state per table
+    sessionStorage.setItem(`${key}-store`, JSON.stringify({
+      ...state.currentVal,
+      prompt: '', // Don't duplicate prompt in table store
+    }))
   })
 
   storesMap.set(key, store)

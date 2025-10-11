@@ -8,8 +8,6 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { createFileRoute } from '@tanstack/react-router'
-
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as publicAuthRouteImport } from './routes/(public)/_auth'
 import { Route as protectedProtectedRouteImport } from './routes/(protected)/_protected'
@@ -26,12 +24,6 @@ import { Route as protectedProtectedDatabaseIdTableIndexRouteImport } from './ro
 import { Route as protectedProtectedDatabaseIdSqlIndexRouteImport } from './routes/(protected)/_protected/database/$id/sql/index'
 import { Route as protectedProtectedDatabaseIdEnumsIndexRouteImport } from './routes/(protected)/_protected/database/$id/enums/index'
 
-const protectedRouteImport = createFileRoute('/(protected)')()
-
-const protectedRoute = protectedRouteImport.update({
-  id: '/(protected)',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const publicAuthRoute = publicAuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => publicRoute,
@@ -110,11 +102,11 @@ const protectedProtectedDatabaseIdEnumsIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof protectedProtectedIndexRoute
   '/create': typeof protectedProtectedCreateRoute
   '/sign-in': typeof publicAuthSignInRoute
   '/sign-up': typeof publicAuthSignUpRoute
   '/two-factor': typeof publicAuthTwoFactorRouteWithChildren
+  '/': typeof protectedProtectedIndexRoute
   '/database/$id': typeof protectedProtectedDatabaseIdRouteWithChildren
   '/two-factor/setup': typeof publicAuthTwoFactorSetupRoute
   '/settings': typeof protectedProtectedSettingsIndexRoute
@@ -139,7 +131,6 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/(protected)': typeof protectedRouteWithChildren
   '/(protected)/_protected': typeof protectedProtectedRouteWithChildren
   '/(public)/_auth': typeof publicAuthRouteWithChildren
   '/(protected)/_protected/create': typeof protectedProtectedCreateRoute
@@ -158,11 +149,11 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/create'
     | '/sign-in'
     | '/sign-up'
     | '/two-factor'
+    | '/'
     | '/database/$id'
     | '/two-factor/setup'
     | '/settings'
@@ -186,7 +177,6 @@ export interface FileRouteTypes {
     | '/database/$id/visualizer'
   id:
     | '__root__'
-    | '/(protected)'
     | '/(protected)/_protected'
     | '/(public)/_auth'
     | '/(protected)/_protected/create'
@@ -203,19 +193,10 @@ export interface FileRouteTypes {
     | '/(protected)/_protected/database/$id/visualizer/'
   fileRoutesById: FileRoutesById
 }
-export interface RootRouteChildren {
-  protectedRoute: typeof protectedRouteWithChildren
-}
+export interface RootRouteChildren {}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/(protected)': {
-      id: '/(protected)'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof protectedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/(public)/_auth': {
       id: '/(public)/_auth'
       path: ''
@@ -225,8 +206,8 @@ declare module '@tanstack/react-router' {
     }
     '/(protected)/_protected': {
       id: '/(protected)/_protected'
-      path: '/'
-      fullPath: '/'
+      path: ''
+      fullPath: ''
       preLoaderRoute: typeof protectedProtectedRouteImport
       parentRoute: typeof protectedRoute
     }
@@ -317,63 +298,7 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface protectedProtectedDatabaseIdRouteChildren {
-  protectedProtectedDatabaseIdEnumsIndexRoute: typeof protectedProtectedDatabaseIdEnumsIndexRoute
-  protectedProtectedDatabaseIdSqlIndexRoute: typeof protectedProtectedDatabaseIdSqlIndexRoute
-  protectedProtectedDatabaseIdTableIndexRoute: typeof protectedProtectedDatabaseIdTableIndexRoute
-  protectedProtectedDatabaseIdVisualizerIndexRoute: typeof protectedProtectedDatabaseIdVisualizerIndexRoute
-}
-
-const protectedProtectedDatabaseIdRouteChildren: protectedProtectedDatabaseIdRouteChildren =
-  {
-    protectedProtectedDatabaseIdEnumsIndexRoute:
-      protectedProtectedDatabaseIdEnumsIndexRoute,
-    protectedProtectedDatabaseIdSqlIndexRoute:
-      protectedProtectedDatabaseIdSqlIndexRoute,
-    protectedProtectedDatabaseIdTableIndexRoute:
-      protectedProtectedDatabaseIdTableIndexRoute,
-    protectedProtectedDatabaseIdVisualizerIndexRoute:
-      protectedProtectedDatabaseIdVisualizerIndexRoute,
-  }
-
-const protectedProtectedDatabaseIdRouteWithChildren =
-  protectedProtectedDatabaseIdRoute._addFileChildren(
-    protectedProtectedDatabaseIdRouteChildren,
-  )
-
-interface protectedProtectedRouteChildren {
-  protectedProtectedCreateRoute: typeof protectedProtectedCreateRoute
-  protectedProtectedIndexRoute: typeof protectedProtectedIndexRoute
-  protectedProtectedDatabaseIdRoute: typeof protectedProtectedDatabaseIdRouteWithChildren
-  protectedProtectedSettingsIndexRoute: typeof protectedProtectedSettingsIndexRoute
-}
-
-const protectedProtectedRouteChildren: protectedProtectedRouteChildren = {
-  protectedProtectedCreateRoute: protectedProtectedCreateRoute,
-  protectedProtectedIndexRoute: protectedProtectedIndexRoute,
-  protectedProtectedDatabaseIdRoute:
-    protectedProtectedDatabaseIdRouteWithChildren,
-  protectedProtectedSettingsIndexRoute: protectedProtectedSettingsIndexRoute,
-}
-
-const protectedProtectedRouteWithChildren =
-  protectedProtectedRoute._addFileChildren(protectedProtectedRouteChildren)
-
-interface protectedRouteChildren {
-  protectedProtectedRoute: typeof protectedProtectedRouteWithChildren
-}
-
-const protectedRouteChildren: protectedRouteChildren = {
-  protectedProtectedRoute: protectedProtectedRouteWithChildren,
-}
-
-const protectedRouteWithChildren = protectedRoute._addFileChildren(
-  protectedRouteChildren,
-)
-
-const rootRouteChildren: RootRouteChildren = {
-  protectedRoute: protectedRouteWithChildren,
-}
+const rootRouteChildren: RootRouteChildren = {}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()

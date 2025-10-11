@@ -21,6 +21,7 @@ const VirtualColumn = memo(function VirtualColumn({
   if (!column.cell) {
     return (
       <div
+        data-column-id={column.id}
         style={{
           width: `${virtualColumn.size}px`,
           height: '100%',
@@ -33,23 +34,31 @@ const VirtualColumn = memo(function VirtualColumn({
   }
 
   return (
-    <column.cell
-      value={value}
-      id={column.id}
-      size={virtualColumn.size}
-      rowIndex={rowIndex}
-      columnIndex={virtualColumn.index}
-      position={virtualColumn.index === 0
-        ? 'first'
-        : virtualColumn.index === columns.length - 1
-          ? 'last'
-          : 'middle'}
+    <div
+      data-column-id={column.id}
       style={{
         width: `${virtualColumn.size}px`,
         height: '100%',
         flexShrink: 0,
       }}
-    />
+    >
+      <column.cell
+        value={value}
+        id={column.id}
+        size={virtualColumn.size}
+        rowIndex={rowIndex}
+        columnIndex={virtualColumn.index}
+        position={virtualColumn.index === 0
+          ? 'first'
+          : virtualColumn.index === columns.length - 1
+            ? 'last'
+            : 'middle'}
+        style={{
+          width: '100%',
+          height: '100%',
+        }}
+      />
+    </div>
   )
 })
 

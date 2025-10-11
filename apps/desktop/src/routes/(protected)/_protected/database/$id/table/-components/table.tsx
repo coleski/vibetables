@@ -3,7 +3,8 @@ import { setSql } from '@conar/shared/sql/set'
 import { RiErrorWarningLine } from '@remixicon/react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useStore } from '@tanstack/react-store'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { Table, TableBody, TableProvider, useTableContext } from '~/components/table'
 import { databaseCustomQueryRows, databaseRowsQuery, DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from '~/entities/database'
 import { TableCell } from '~/entities/database/components/table-cell'
@@ -41,6 +42,20 @@ export function TableError({ error }: { error: Error }) {
       </div>
     </div>
   )
+}
+
+/**
+ * Forces the column virtualizer to remeasure when column sizes change.
+ * This ensures the virtualizer picks up the new column widths.
+ */
+function ColumnResizeMeasurer({ columnSizes }: { columnSizes: Record<string, number> }) {
+  const columnVirtualizer = useTableContext(state => state.columnVirtualizer)
+
+  useEffect(() => {
+    columnVirtualizer.measure()
+  }, [columnSizes, columnVirtualizer])
+
+  return null
 }
 
 /**
@@ -111,15 +126,17 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
   const columns = useTableColumns({ database, table, schema })
   const store = usePageStoreContext()
   const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null)
+  const lastErrorRef = useRef<Error | null>(null)
 
   // Consolidate store subscriptions to minimize re-renders
-  const { filters, orderBy, customQueryActive, query, hiddenColumns } = useStore(store, state => ({
+  const { filters, orderBy, customQueryActive, query, hiddenColumns, columnSizes } = useStore(store, state => ({
     filters: state.filters,
     orderBy: state.orderBy,
     customQueryActive: state.customQueryActive,
     // Only include query value when custom query is active
     query: state.customQueryActive ? state.query : '',
     hiddenColumns: state.hiddenColumns,
+    columnSizes: state.columnSizes,
   }))
 
   const { data: rows, error, isPending: isRowsPending } = useInfiniteQuery(
@@ -128,6 +145,20 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
       : databaseRowsQuery({ database, table, schema, query: { filters, orderBy } }),
   )
   const primaryColumns = useMemo(() => columns?.filter(c => c.primaryKey).map(c => c.id) ?? [], [columns])
+
+  // Show toast when error occurs, but keep cached data visible
+  useEffect(() => {
+    if (error && error !== lastErrorRef.current) {
+      lastErrorRef.current = error
+      toast.error('Database query error', {
+        description: error.message,
+        duration: 5000,
+      })
+    }
+    else if (!error) {
+      lastErrorRef.current = null
+    }
+  }, [error])
 
   useEffect(() => {
     if (!rows || !store.state.selected)
@@ -247,6 +278,16 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
     }
   }, [store, setOrder, removeOrder])
 
+  const setColumnSize = useCallback((columnId: string, size: number) => {
+    store.setState(state => ({
+      ...state,
+      columnSizes: {
+        ...state.columnSizes,
+        [columnId]: size,
+      },
+    }))
+  }, [store])
+
   const tableColumns = useMemo(() => {
     if (!columns)
       return []
@@ -254,29 +295,34 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
     const sortedColumns: ColumnRenderer[] = columns
       .filter(column => !hiddenColumns.includes(column.id))
       .toSorted((a, b) => a.primaryKey ? -1 : b.primaryKey ? 1 : 0)
-      .map(column => ({
-        id: column.id,
-        size: (columnsSizeMap.get(column.type) ?? DEFAULT_COLUMN_WIDTH)
+      .map(column => {
+        const defaultSize = (columnsSizeMap.get(column.type) ?? DEFAULT_COLUMN_WIDTH)
           // 25 it's a ~size of the button, 6 it's a ~size of the number
           + (column.references?.length ? 25 + 6 : 0)
-          + (column.foreign ? 25 : 0),
-        cell: props => (
-          <TableCell
-            column={column}
-            onSetValue={setValue}
-            onSaveValue={saveValue}
-            {...props}
-          />
-        ),
-        header: props => (
-          <TableHeaderCell
-            column={column}
-            onSort={() => onSort(column.id)}
-            isHighlighted={highlightedColumn === column.id}
-            {...props}
-          />
-        ),
-      }) satisfies ColumnRenderer)
+          + (column.foreign ? 25 : 0)
+        const size = columnSizes[column.id] ?? defaultSize
+        return {
+          id: column.id,
+          size,
+          cell: props => (
+            <TableCell
+              column={column}
+              onSetValue={setValue}
+              onSaveValue={saveValue}
+              {...props}
+            />
+          ),
+          header: props => (
+            <TableHeaderCell
+              column={column}
+              onSort={() => onSort(column.id)}
+              onResize={(size) => setColumnSize(column.id, size)}
+              isHighlighted={highlightedColumn === column.id}
+              {...props}
+            />
+          ),
+        } satisfies ColumnRenderer
+      })
 
     if (primaryColumns.length > 0 && hiddenColumns.length !== columns.length) {
       sortedColumns.unshift({
@@ -288,7 +334,7 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
     }
 
     return sortedColumns
-  }, [columns, hiddenColumns, primaryColumns, setValue, saveValue, onSort, highlightedColumn])
+  }, [columns, hiddenColumns, primaryColumns, setValue, saveValue, onSort, highlightedColumn, columnSizes, setColumnSize])
 
   return (
     <TableProvider
@@ -297,13 +343,14 @@ function TableComponent({ table, schema }: { table: string, schema: string }) {
       estimatedRowSize={DEFAULT_ROW_HEIGHT}
       estimatedColumnSize={DEFAULT_COLUMN_WIDTH}
     >
+      <ColumnResizeMeasurer columnSizes={columnSizes} />
       <ColumnScroller key={timestamp} targetColumn={targetColumn} onHighlight={setHighlightedColumn} />
       <div className="size-full relative bg-background">
         <Table>
           <TableHeader />
-          {isRowsPending
+          {isRowsPending && !rows
             ? <TableBodySkeleton selectable={primaryColumns.length > 0} />
-            : error
+            : error && (!rows || rows.length === 0)
               ? <TableError error={error} />
               : rows?.length === 0
                 ? <TableEmpty className="bottom-0 h-[calc(100%-5rem)]" title="Table is empty" description="There are no records to show" />
