@@ -3,9 +3,10 @@ import type { Column } from '~/entities/database/table'
 import { Button } from '@conar/ui/components/button'
 import { Input } from '@conar/ui/components/input'
 import { useDebouncedMemo } from '@conar/ui/hookas/use-debounced-memo'
+import { copy } from '@conar/ui/lib/copy'
 import { cn } from '@conar/ui/lib/utils'
 import NumberFlow from '@number-flow/react'
-import { RiCloseLine, RiSearchLine } from '@remixicon/react'
+import { RiCloseLine, RiFileCopyLine, RiSearchLine } from '@remixicon/react'
 import { useMemo, useState } from 'react'
 import { Table, TableBody, TableHeader, TableProvider } from '~/components/table'
 import { DEFAULT_COLUMN_WIDTH, DEFAULT_ROW_HEIGHT } from '~/entities/database'
@@ -56,6 +57,10 @@ export function RunnerResultsTable({
     } satisfies ColumnRenderer))
   }, [columns])
 
+  const handleCopyJSON = () => {
+    copy(JSON.stringify(filteredData, null, 2), 'Results copied to clipboard')
+  }
+
   return (
     <div className="h-full">
       <div className="px-4 h-10 flex items-center justify-between gap-2">
@@ -67,6 +72,14 @@ export function RunnerResultsTable({
             {filteredData.length === 1 ? 'row' : 'rows'}
             {search && filteredData.length !== result.length && ` (filtered from ${result.length})`}
           </span>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={handleCopyJSON}
+            title="Copy as JSON"
+          >
+            <RiFileCopyLine className="size-3" />
+          </Button>
         </div>
         <div className="relative flex-1 max-w-60">
           <Input
